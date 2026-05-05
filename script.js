@@ -20,7 +20,30 @@ let currentPeriod = 'hari';
 let restockTarget = { produkId: '', produkName: '', size: '', color: '', qty: 1 };
 let editTarget = { produkId: '', produkName: '', size: '', color: '' };
 
-// ===================== CORE: FETCH DENGAN LOGIKA MERGE =====================
+// ===================== UTILS =====================
+function saveStok() {
+  localStorage.setItem('stokData', JSON.stringify(stokData));
+}
+function saveHistory() {
+  localStorage.setItem('orderHistory', JSON.stringify(orderHistory));
+}
+function fixGDriveLink(url) {
+  if (!url) return '';
+  const fileId = url.match(/\/d\/([^\/]+)/);
+  return fileId ? `https://lh3.googleusercontent.com/d/${fileId[1]}` : url;
+}
+function formatRp(num) {
+  return 'Rp' + num.toLocaleString('id-ID');
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===================== CORE: FETCH DENGAN MERGE SINKRON =====================
 async function fetchProducts() {
   try {
     const response = await fetch(WEBHOOK_GET_PRODUCTS);
@@ -52,13 +75,12 @@ async function fetchProducts() {
       if (colorTrimmed && !acc[name].colors.includes(colorTrimmed)) acc[name].colors.push(colorTrimmed);
 
       const key = `${acc[name].id}_${item['Varian Size']}_${colorTrimmed}`;
-
       const serverAwal = parseInt(item['Stok Awal']) || 0;
       const serverMasuk = parseInt(item['Stok Masuk']) || 0;
       const serverSisa = parseInt(item['Stok Sisa']) || 0;
 
-      // Proteksi Data: Jika server masih 0 tapi lokal ada isinya, tahan data lokal.
-      if (!stokData[key] || serverSisa > 0) {
+      // Sinkronisasi: Update lokal cuma kalau data server lebih baru/besar
+      if (!stokData[key] || serverSisa >= (stokData[key]?.sisa || 0)) {
         stokData[key] = { awal: serverAwal, masuk: serverMasuk, sisa: serverSisa };
       }
 
@@ -66,6 +88,7 @@ async function fetchProducts() {
     }, {});
 
     products = Object.values(grouped);
+    saveStok(); // Simpan hasil sinkronisasi
     renderProducts();
   } catch (e) {
     console.error('Fetch error:', e);
@@ -73,7 +96,7 @@ async function fetchProducts() {
   }
 }
 
-// ===================== LOGIC: RESTOCK & SMART INITIAL STOCK =====================
+// ===================== LOGIC: RESTOCK (OPTIMISTIC UI) =====================
 async function submitRestock() {
   const { produkId, produkName, size, color, qty } = restockTarget;
   const key = `${produkId}_${size}_${color}`;
@@ -82,7 +105,6 @@ async function submitRestock() {
   let newAwal = current.awal;
   let newMasuk = current.masuk;
 
-  // LOGIKA ANTI-NOL: Kalau Stok Awal masih 0 di database, maka input ini jadi Stok Awal.
   if (newAwal === 0) {
     newAwal = qty;
     newMasuk = 0;
@@ -91,42 +113,35 @@ async function submitRestock() {
   }
 
   const newSisa = newAwal + newMasuk;
+
+  // --- TAHAP 1: UPDATE LOKAL LANGSUNG (SNAPPY) ---
   stokData[key] = { awal: newAwal, masuk: newMasuk, sisa: newSisa };
-  localStorage.setItem('stokData', JSON.stringify(stokData));
+  saveStok();
+  renderProducts();
+  if (document.getElementById('tab-stok').classList.contains('active')) renderStok();
 
-  const dataKeN8n = {
-    'ID Produk': produkId,
-    'Nama Produk': produkName,
-    'Varian Size': size,
-    'Varian Warna': color,
-    'Stok Awal': newAwal,
-    'Stok Masuk': newMasuk,
-    'Stok Sisa': newSisa,
-    Key: key,
-    chat_id: getChatId(),
-  };
+  showToast(`✓ Stok diperbarui: ${newSisa} pcs`);
+  closeRestock();
 
-  const btn = document.querySelector('#restock-modal .btn-confirm');
-  btn.disabled = true;
-  btn.textContent = 'MENGIRIM...';
-
+  // --- TAHAP 2: KIRIM KE SERVER DI BACKGROUND ---
   try {
-    const res = await fetch(WEBHOOK_RESTOCK, {
+    await fetch(WEBHOOK_RESTOCK, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dataKeN8n),
+      body: JSON.stringify({
+        'ID Produk': produkId,
+        'Nama Produk': produkName,
+        'Varian Size': size,
+        'Varian Warna': color,
+        'Stok Awal': newAwal,
+        'Stok Masuk': newMasuk,
+        'Stok Sisa': newSisa,
+        Key: key,
+        chat_id: getChatId(),
+      }),
     });
-    if (res.ok) {
-      showToast(`✓ Stok diperbarui: ${newSisa} pcs`);
-      closeRestock();
-      renderProducts();
-      if (document.getElementById('tab-stok').classList.contains('active')) renderStok();
-    }
   } catch (e) {
-    showToast('Gagal update server');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'KONFIRMASI';
+    console.error('Gagal sinkron ke Google Sheets, tapi data lokal aman.', e);
   }
 }
 
@@ -139,18 +154,17 @@ function openEditStok(produkId, produkName, size, color, qty) {
   document.getElementById('edit-stok-modal').classList.add('show');
 }
 
-function closeEditStok() {
-  document.getElementById('edit-stok-modal').classList.remove('show');
-}
-
 async function submitEditStok() {
   const { produkId, produkName, size, color } = editTarget;
   const qtyBaru = parseInt(document.getElementById('edit-qty-input').value) || 0;
   const key = `${produkId}_${size}_${color}`;
 
-  // Reset Stok: Jadikan input baru sebagai Stok Awal, nolkan Stok Masuk.
   stokData[key] = { awal: qtyBaru, masuk: 0, sisa: qtyBaru };
-  localStorage.setItem('stokData', JSON.stringify(stokData));
+  saveStok();
+  renderStok();
+  renderProducts();
+  closeEditStok();
+  showToast(`✓ Stok direset ke ${qtyBaru}`);
 
   try {
     await fetch(WEBHOOK_EDIT_STOK, {
@@ -167,71 +181,16 @@ async function submitEditStok() {
         chat_id: getChatId(),
       }),
     });
-    showToast(`✓ Stok direset ke ${qtyBaru}`);
-    closeEditStok();
-    renderStok();
-    renderProducts();
   } catch (e) {
-    showToast('Gagal update server');
+    console.error(e);
   }
 }
 
-// ===================== LOGIC: PENJUALAN =====================
-async function kirimLaporan() {
-  const items = products.filter((p) => p.quantity > 0);
-  const btn = document.getElementById('btn-kirim');
-  btn.disabled = true;
-  btn.textContent = 'MENGIRIM...';
-
-  for (const p of items) {
-    const key = `${p.id}_${p.selectedSize}_${p.selectedColor}`;
-    const total = p.harga * p.quantity;
-    const potongan = Math.round(total * 0.15);
-
-    try {
-      await fetch(WEBHOOK_ORDER, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: getChatId(),
-          id_produk: p.id,
-          nama_produk: p.name,
-          varian: `${p.selectedSize}-${p.selectedColor}`,
-          jumlah: p.quantity,
-          harga_jual: p.harga,
-          hpp: p.hpp,
-          platform: p.selectedPlatform,
-        }),
-      });
-
-      if (stokData[key]) {
-        stokData[key].sisa = Math.max(0, (stokData[key].sisa || 0) - p.quantity);
-        localStorage.setItem('stokData', JSON.stringify(stokData));
-      }
-
-      orderHistory.unshift({
-        tanggal: new Date().toLocaleDateString('id-ID'),
-        nama_produk: p.name,
-        varian: `${p.selectedSize}-${p.selectedColor}`,
-        jumlah: p.quantity,
-        total_penjualan: total,
-        untung_bersih: total - potongan - p.hpp * p.quantity,
-        platform: p.selectedPlatform,
-      });
-      localStorage.setItem('orderHistory', JSON.stringify(orderHistory));
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  products.forEach((p) => (p.quantity = 0));
-  renderProducts();
-  showToast('✓ Order berhasil!');
-  btn.disabled = false;
-  btn.textContent = 'KIRIM ORDER';
+function closeEditStok() {
+  document.getElementById('edit-stok-modal').classList.remove('show');
 }
 
-// ===================== UI RENDERING & HELPERS =====================
+// ===================== UI RENDERING =====================
 function renderStok() {
   const container = document.getElementById('stok-list');
   if (!container) return;
@@ -293,6 +252,8 @@ function renderProducts() {
   updateBottomBar();
 }
 
+// ... (Fungsi switchTab, renderLaporan, kirimLaporan, dll tetap sama)
+
 function switchTab(tab) {
   document.querySelectorAll('.tab-content, .tab').forEach((el) => el.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
@@ -319,6 +280,55 @@ function renderLaporan() {
       .join('') || '<div class="empty-state">Belum ada order</div>';
 }
 
+async function kirimLaporan() {
+  const items = products.filter((p) => p.quantity > 0);
+  const btn = document.getElementById('btn-kirim');
+  btn.disabled = true;
+  btn.textContent = 'MENGIRIM...';
+  for (const p of items) {
+    const key = `${p.id}_${p.selectedSize}_${p.selectedColor}`;
+    const total = p.harga * p.quantity;
+    const potongan = Math.round(total * 0.15);
+    try {
+      await fetch(WEBHOOK_ORDER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: getChatId(),
+          id_produk: p.id,
+          nama_produk: p.name,
+          varian: `${p.selectedSize}-${p.selectedColor}`,
+          jumlah: p.quantity,
+          harga_jual: p.harga,
+          hpp: p.hpp,
+          platform: p.selectedPlatform,
+        }),
+      });
+      if (stokData[key]) {
+        stokData[key].sisa = Math.max(0, (stokData[key].sisa || 0) - p.quantity);
+        saveStok();
+      }
+      orderHistory.unshift({
+        tanggal: new Date().toLocaleDateString('id-ID'),
+        nama_produk: p.name,
+        varian: `${p.selectedSize}-${p.selectedColor}`,
+        jumlah: p.quantity,
+        total_penjualan: total,
+        untung_bersih: total - potongan - p.hpp * p.quantity,
+        platform: p.selectedPlatform,
+      });
+      saveHistory();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  products.forEach((p) => (p.quantity = 0));
+  renderProducts();
+  showToast('✓ Order berhasil!');
+  btn.disabled = false;
+  btn.textContent = 'KIRIM ORDER';
+}
+
 function updateQty(id, delta) {
   const p = products.find((p) => p.id === id);
   const key = `${p.id}_${p.selectedSize}_${p.selectedColor}`;
@@ -330,7 +340,6 @@ function updateQty(id, delta) {
   p.quantity = Math.max(0, p.quantity + delta);
   renderProducts();
 }
-
 function selectVariant(id, type, value) {
   const p = products.find((p) => p.id === id);
   if (type === 'size') p.selectedSize = value;
@@ -338,7 +347,6 @@ function selectVariant(id, type, value) {
   if (type === 'platform') p.selectedPlatform = value;
   renderProducts();
 }
-
 function openRestock(id, name, s, c) {
   restockTarget = { produkId: id, produkName: name, size: s, color: c, qty: 1 };
   document.getElementById('restock-produk-name').textContent = name;
@@ -346,24 +354,19 @@ function openRestock(id, name, s, c) {
   document.getElementById('restock-qty').textContent = '1';
   document.getElementById('restock-modal').classList.add('show');
 }
-
 function changeRestockQty(delta) {
   restockTarget.qty = Math.max(1, restockTarget.qty + delta);
   document.getElementById('restock-qty').textContent = restockTarget.qty;
 }
-
 function closeRestock() {
   document.getElementById('restock-modal').classList.remove('show');
 }
-function fixGDriveLink(url) {
-  if (!url) return '';
-  const fileId = url.match(/\/d\/([^\/]+)/);
-  return fileId ? `https://lh3.googleusercontent.com/d/${fileId[1]}` : url;
-}
 function updateBottomBar() {
   const total = products.reduce((sum, p) => sum + p.quantity, 0);
-  document.getElementById('total-item-count').textContent = `${total} item`;
-  document.getElementById('btn-kirim').disabled = total === 0;
+  const el = document.getElementById('total-item-count');
+  if (el) el.textContent = `${total} item`;
+  const btn = document.getElementById('btn-kirim');
+  if (btn) btn.disabled = total === 0;
 }
 
 window.onload = fetchProducts;
