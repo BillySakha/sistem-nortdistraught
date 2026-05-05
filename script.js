@@ -13,7 +13,6 @@ if (tg) {
 const getChatId = () => String(tg?.initDataUnsafe?.user?.id || '');
 
 let products = [];
-// Langsung ambil dari Local Storage biar nggak kedip pas refresh
 let stokData = JSON.parse(localStorage.getItem('stokData')) || {};
 let orderHistory = JSON.parse(localStorage.getItem('orderHistory')) || [];
 let currentPeriod = 'hari';
@@ -54,11 +53,11 @@ async function fetchProducts() {
 
       const key = `${acc[name].id}_${item['Varian Size']}_${colorTrimmed}`;
 
-      // LOGIKA MERGE: Ambil data server TAPI jangan timpa lokal kalau server masih 0
       const serverAwal = parseInt(item['Stok Awal']) || 0;
       const serverMasuk = parseInt(item['Stok Masuk']) || 0;
       const serverSisa = parseInt(item['Stok Sisa']) || 0;
 
+      // Proteksi Data: Jika server masih 0 tapi lokal ada isinya, tahan data lokal.
       if (!stokData[key] || serverSisa > 0) {
         stokData[key] = { awal: serverAwal, masuk: serverMasuk, sisa: serverSisa };
       }
@@ -70,49 +69,11 @@ async function fetchProducts() {
     renderProducts();
   } catch (e) {
     console.error('Fetch error:', e);
-    renderProducts(); // Tetap render pake data lokal
+    renderProducts();
   }
 }
 
-// ===================== UI RENDERING =====================
-function renderProducts() {
-  const container = document.getElementById('product-list');
-  if (!container) return;
-
-  container.innerHTML = products
-    .map((p) => {
-      const key = `${p.id}_${p.selectedSize}_${p.selectedColor}`;
-      const sisa = stokData[key]?.sisa || 0;
-
-      const sizeChips = p.sizes.map((s) => `<div class="chip ${p.selectedSize === s ? 'active' : ''}" onclick="selectVariant('${p.id}','size','${s}')">${s}</div>`).join('');
-      const colorChips = p.colors.map((c) => `<div class="chip ${p.selectedColor === c ? 'active' : ''}" onclick="selectVariant('${p.id}','color','${c}')">${c}</div>`).join('');
-      const platformChips = ['TikTok', 'Shopee'].map((pl) => `<div class="platform-chip ${p.selectedPlatform === pl ? 'active' : ''}" onclick="selectVariant('${p.id}','platform','${pl}')">${pl}</div>`).join('');
-
-      return `
-      <div class="product-card ${p.quantity > 0 ? 'has-qty' : ''}">
-        <div class="product-thumb">${p.image ? `<img src="${p.image}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">` : `<div class="thumb-icon">👕</div>`}</div>
-        <div class="product-body">
-          <div class="product-name">${p.name}</div>
-          <div class="product-price">Rp${p.harga.toLocaleString('id')}</div>
-          <div class="chip-group"><div class="chip-label">UKURAN</div><div class="chip-row">${sizeChips}</div></div>
-          <div class="chip-group"><div class="chip-label">WARNA</div><div class="chip-row">${colorChips}</div></div>
-          <div class="chip-group"><div class="chip-label">PLATFORM</div><div class="chip-row">${platformChips}</div></div>
-          <div class="qty-row">
-            <div class="qty-label">STOK: ${sisa} pcs</div>
-            <div class="qty-ctrl">
-              <button class="qty-btn" onclick="updateQty('${p.id}',-1)">−</button>
-              <span class="qty-num ${p.quantity > 0 ? 'active' : ''}">${p.quantity}</span>
-              <button class="qty-btn" onclick="updateQty('${p.id}',1)">+</button>
-            </div>
-          </div>
-        </div>
-      </div>`;
-    })
-    .join('');
-  updateBottomBar();
-}
-
-// ===================== LOGIC: RESTOCK & ACCUMULATION =====================
+// ===================== LOGIC: RESTOCK & SMART INITIAL STOCK =====================
 async function submitRestock() {
   const { produkId, produkName, size, color, qty } = restockTarget;
   const key = `${produkId}_${size}_${color}`;
@@ -121,7 +82,7 @@ async function submitRestock() {
   let newAwal = current.awal;
   let newMasuk = current.masuk;
 
-  // Proteksi Stok Awal: Kalau 0, isi sebagai Awal. Kalau sudah ada, isi ke Masuk.
+  // LOGIKA ANTI-NOL: Kalau Stok Awal masih 0 di database, maka input ini jadi Stok Awal.
   if (newAwal === 0) {
     newAwal = qty;
     newMasuk = 0;
@@ -131,7 +92,7 @@ async function submitRestock() {
 
   const newSisa = newAwal + newMasuk;
   stokData[key] = { awal: newAwal, masuk: newMasuk, sisa: newSisa };
-  localStorage.setItem('stokData', JSON.stringify(stokData)); // Kunci di memori
+  localStorage.setItem('stokData', JSON.stringify(stokData));
 
   const dataKeN8n = {
     'ID Produk': produkId,
@@ -166,6 +127,52 @@ async function submitRestock() {
   } finally {
     btn.disabled = false;
     btn.textContent = 'KONFIRMASI';
+  }
+}
+
+// ===================== LOGIC: EDIT STOK (FIXED) =====================
+function openEditStok(produkId, produkName, size, color, qty) {
+  editTarget = { produkId, produkName, size, color };
+  document.getElementById('edit-produk-name').textContent = produkName;
+  document.getElementById('edit-varian-name').textContent = `${size} · ${color}`;
+  document.getElementById('edit-qty-input').value = qty;
+  document.getElementById('edit-stok-modal').classList.add('show');
+}
+
+function closeEditStok() {
+  document.getElementById('edit-stok-modal').classList.remove('show');
+}
+
+async function submitEditStok() {
+  const { produkId, produkName, size, color } = editTarget;
+  const qtyBaru = parseInt(document.getElementById('edit-qty-input').value) || 0;
+  const key = `${produkId}_${size}_${color}`;
+
+  // Reset Stok: Jadikan input baru sebagai Stok Awal, nolkan Stok Masuk.
+  stokData[key] = { awal: qtyBaru, masuk: 0, sisa: qtyBaru };
+  localStorage.setItem('stokData', JSON.stringify(stokData));
+
+  try {
+    await fetch(WEBHOOK_EDIT_STOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        'ID Produk': produkId,
+        'Nama Produk': produkName,
+        'Varian Size': size,
+        'Varian Warna': color,
+        'Stok Baru': qtyBaru,
+        'Stok Sisa': qtyBaru,
+        Key: key,
+        chat_id: getChatId(),
+      }),
+    });
+    showToast(`✓ Stok direset ke ${qtyBaru}`);
+    closeEditStok();
+    renderStok();
+    renderProducts();
+  } catch (e) {
+    showToast('Gagal update server');
   }
 }
 
@@ -224,16 +231,7 @@ async function kirimLaporan() {
   btn.textContent = 'KIRIM ORDER';
 }
 
-// ===================== UI HELPERS & MODALS =====================
-function switchTab(tab) {
-  document.querySelectorAll('.tab-content, .tab').forEach((el) => el.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-  document.getElementById('bottom-bar').style.display = tab === 'order' ? 'flex' : 'none';
-  if (tab === 'stok') renderStok();
-  if (tab === 'laporan') renderLaporan();
-}
-
+// ===================== UI RENDERING & HELPERS =====================
 function renderStok() {
   const container = document.getElementById('stok-list');
   if (!container) return;
@@ -250,6 +248,7 @@ function renderStok() {
           <div class="stok-actions">
             <span class="badge ${q.sisa === 0 ? 'empty' : q.sisa <= 3 ? 'low' : 'ok'}">${q.sisa} pcs</span>
             <button class="stok-restock-btn" onclick="openRestock('${p.id}','${p.name}','${s}','${c}')">+ RESTOCK</button>
+            <button class="stok-edit-btn" onclick="openEditStok('${p.id}','${p.name}','${s}','${c}',${q.sisa})">✏️ EDIT</button>
           </div>
         </div>`;
           }),
@@ -258,6 +257,49 @@ function renderStok() {
       return `<div class="stok-card"><div class="stok-header"><div class="stok-name">${p.name}</div></div>${rows}</div>`;
     })
     .join('');
+}
+
+function renderProducts() {
+  const container = document.getElementById('product-list');
+  if (!container) return;
+  container.innerHTML = products
+    .map((p) => {
+      const key = `${p.id}_${p.selectedSize}_${p.selectedColor}`;
+      const sisa = stokData[key]?.sisa || 0;
+      const sizeChips = p.sizes.map((s) => `<div class="chip ${p.selectedSize === s ? 'active' : ''}" onclick="selectVariant('${p.id}','size','${s}')">${s}</div>`).join('');
+      const colorChips = p.colors.map((c) => `<div class="chip ${p.selectedColor === c ? 'active' : ''}" onclick="selectVariant('${p.id}','color','${c}')">${c}</div>`).join('');
+      const platformChips = ['TikTok', 'Shopee'].map((pl) => `<div class="platform-chip ${p.selectedPlatform === pl ? 'active' : ''}" onclick="selectVariant('${p.id}','platform','${pl}')">${pl}</div>`).join('');
+      return `
+      <div class="product-card ${p.quantity > 0 ? 'has-qty' : ''}">
+        <div class="product-thumb">${p.image ? `<img src="${p.image}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">` : `<div class="thumb-icon">👕</div>`}</div>
+        <div class="product-body">
+          <div class="product-name">${p.name}</div>
+          <div class="product-price">Rp${p.harga.toLocaleString('id')}</div>
+          <div class="chip-group"><div class="chip-label">UKURAN</div><div class="chip-row">${sizeChips}</div></div>
+          <div class="chip-group"><div class="chip-label">WARNA</div><div class="chip-row">${colorChips}</div></div>
+          <div class="chip-group"><div class="chip-label">PLATFORM</div><div class="chip-row">${platformChips}</div></div>
+          <div class="qty-row">
+            <div class="qty-label">STOK: ${sisa} pcs</div>
+            <div class="qty-ctrl">
+              <button class="qty-btn" onclick="updateQty('${p.id}',-1)">−</button>
+              <span class="qty-num ${p.quantity > 0 ? 'active' : ''}">${p.quantity}</span>
+              <button class="qty-btn" onclick="updateQty('${p.id}',1)">+</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    })
+    .join('');
+  updateBottomBar();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content, .tab').forEach((el) => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById('bottom-bar').style.display = tab === 'order' ? 'flex' : 'none';
+  if (tab === 'stok') renderStok();
+  if (tab === 'laporan') renderLaporan();
 }
 
 function renderLaporan() {
@@ -277,18 +319,8 @@ function renderLaporan() {
       .join('') || '<div class="empty-state">Belum ada order</div>';
 }
 
-function selectVariant(id, type, value) {
-  const p = products.find((p) => p.id === id);
-  if (!p) return;
-  if (type === 'size') p.selectedSize = value;
-  if (type === 'color') p.selectedColor = value;
-  if (type === 'platform') p.selectedPlatform = value;
-  renderProducts();
-}
-
 function updateQty(id, delta) {
   const p = products.find((p) => p.id === id);
-  if (!p) return;
   const key = `${p.id}_${p.selectedSize}_${p.selectedColor}`;
   const sisa = stokData[key]?.sisa || 0;
   if (delta > 0 && p.quantity >= sisa) {
@@ -296,6 +328,14 @@ function updateQty(id, delta) {
     return;
   }
   p.quantity = Math.max(0, p.quantity + delta);
+  renderProducts();
+}
+
+function selectVariant(id, type, value) {
+  const p = products.find((p) => p.id === id);
+  if (type === 'size') p.selectedSize = value;
+  if (type === 'color') p.selectedColor = value;
+  if (type === 'platform') p.selectedPlatform = value;
   renderProducts();
 }
 
