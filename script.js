@@ -166,21 +166,31 @@ async function submitRestock() {
   // Ambil data lama dari memori (hasil fetch)
   const current = stokData[key] || { awal: 0, masuk: 0, sisa: 0 };
 
-  // HITUNG AKUMULASI
-  const stokAwalTetap = current.awal;
-  const totalMasukBaru = current.masuk + qty;
-  const totalSisaBaru = stokAwalTetap + totalMasukBaru;
+  let stokAwalBaru = current.awal;
+  let stokMasukBaru = current.masuk;
+
+  // --- LOGIKA ANTI-NOL ---
+  // Jika ini adalah input pertama kali (Awal & Masuk masih 0)
+  if (current.awal === 0 && current.masuk === 0) {
+    stokAwalBaru = qty; // Input pertama masuk ke Stok Awal
+    stokMasukBaru = 0; // Stok Masuk tetep 0
+  } else {
+    // Jika sudah pernah ada stok, input baru masuk ke akumulasi Stok Masuk
+    stokMasukBaru = current.masuk + qty;
+  }
+
+  const totalSisaBaru = stokAwalBaru + stokMasukBaru;
 
   // Update memori lokal
-  stokData[key] = { awal: stokAwalTetap, masuk: totalMasukBaru, sisa: totalSisaBaru };
+  stokData[key] = { awal: stokAwalBaru, masuk: stokMasukBaru, sisa: totalSisaBaru };
 
   const dataKeN8n = {
     'ID Produk': produkId,
     'Nama Produk': produkName,
     'Varian Size': size,
     'Varian Warna': color,
-    'Stok Awal': stokAwalTetap,
-    'Stok Masuk': totalMasukBaru, // Mengirim hasil akumulasi
+    'Stok Awal': stokAwalBaru, // Sekarang gak bakal 0 lagi buat barang baru
+    'Stok Masuk': stokMasukBaru, // Akumulasi jika sudah ada stok awal
     'Stok Sisa': totalSisaBaru,
     Key: key,
     chat_id: getChatId(),
@@ -197,7 +207,7 @@ async function submitRestock() {
       body: JSON.stringify(dataKeN8n),
     });
     if (res.ok) {
-      showToast(`✓ Berhasil tambah ${qty} pcs!`);
+      showToast(`✓ Berhasil update stok!`);
       saveStok();
       closeRestock();
       if (document.getElementById('tab-stok').classList.contains('active')) renderStok();
