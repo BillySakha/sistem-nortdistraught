@@ -97,7 +97,11 @@ async function fetchProducts() {
 }
 
 // ===================== LOGIC: RESTOCK (OPTIMISTIC UI) =====================
+let isSubmitting = false; // Pengunci global di luar fungsi
+
 async function submitRestock() {
+  if (isSubmitting) return; // Jika lagi ngirim, klik selanjutnya diabaikan
+
   const { produkId, produkName, size, color, qty } = restockTarget;
   const key = `${produkId}_${size}_${color}`;
   let current = stokData[key] || { awal: 0, masuk: 0, sisa: 0 };
@@ -105,6 +109,7 @@ async function submitRestock() {
   let newAwal = current.awal;
   let newMasuk = current.masuk;
 
+  // Logika pembagian: Input pertama masuk ke 'Awal', selanjutnya ke 'Masuk'
   if (newAwal === 0) {
     newAwal = qty;
     newMasuk = 0;
@@ -114,16 +119,18 @@ async function submitRestock() {
 
   const newSisa = newAwal + newMasuk;
 
-  // --- TAHAP 1: UPDATE LOKAL LANGSUNG (SNAPPY) ---
+  // --- TAHAP 1: UPDATE LOKAL (Optimistic UI) ---
   stokData[key] = { awal: newAwal, masuk: newMasuk, sisa: newSisa };
   saveStok();
   renderProducts();
-  if (document.getElementById('tab-stok').classList.contains('active')) renderStok();
+  if (document.getElementById('tab-stok')?.classList.contains('active')) renderStok();
 
   showToast(`✓ Stok diperbarui: ${newSisa} pcs`);
   closeRestock();
 
-  // --- TAHAP 2: KIRIM KE SERVER DI BACKGROUND ---
+  // --- TAHAP 2: KIRIM KE SERVER ---
+  isSubmitting = true; // KUNCI SEBELUM FETCH
+
   try {
     await fetch(WEBHOOK_RESTOCK, {
       method: 'POST',
@@ -136,12 +143,14 @@ async function submitRestock() {
         'Stok Awal': newAwal,
         'Stok Masuk': newMasuk,
         'Stok Sisa': newSisa,
-        Key: key,
+        Key: key, // Pastikan konsisten pakai tanda petik jika di n8n pakai spasi
         chat_id: getChatId(),
       }),
     });
   } catch (e) {
-    console.error('Gagal sinkron ke Google Sheets, tapi data lokal aman.', e);
+    console.error('Gagal sinkron ke Sheets, tapi lokal aman.', e);
+  } finally {
+    isSubmitting = false; // BUKA GEMBOK LAGI (Wajib!)
   }
 }
 
