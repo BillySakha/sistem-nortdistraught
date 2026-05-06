@@ -21,17 +21,17 @@
             <div class="live-dot" id="live-dot"></div>
           </div>
         </div>
+        <!-- NAVIGASI: Tab Laporan sudah dihapus -->
         <nav class="tabs">
           <button class="tab active" data-tab="order" onclick="switchTab('order')">INPUT ORDER</button>
           <button class="tab" data-tab="stok" onclick="switchTab('stok')">STOK</button>
-          <button class="tab" data-tab="laporan" onclick="switchTab('laporan')">LAPORAN</button>
         </nav>
       </header>
 
-      <!-- TOAST -->
+      <!-- TOAST NOTIFICATION -->
       <div class="toast" id="toast"></div>
 
-      <!-- CONTENT -->
+      <!-- MAIN CONTENT -->
       <main class="content">
         <!-- ====== TAB: ORDER ====== -->
         <section id="tab-order" class="tab-content active">
@@ -44,9 +44,9 @@
           <div class="section-title">STATUS STOK</div>
           <div id="stok-list"></div>
 
-          <!-- RESTOCK MODAL -->
+          <!-- RESTOCK MODAL (Input Tambah Stok) -->
           <div class="modal-overlay" id="restock-modal">
-            <div class="modal">
+            <div class="modal-box">
               <div class="modal-title">RESTOCK PRODUK</div>
               <div class="modal-produk" id="restock-produk-name">—</div>
               <div class="modal-varian" id="restock-varian-name">—</div>
@@ -65,40 +65,9 @@
             </div>
           </div>
         </section>
-
-        <!-- ====== TAB: LAPORAN ====== -->
-        <section id="tab-laporan" class="tab-content">
-          <div class="period-row">
-            <button class="period-btn active" onclick="setPeriod('hari', this)">HARI INI</button>
-            <button class="period-btn" onclick="setPeriod('minggu', this)">MINGGU</button>
-            <button class="period-btn" onclick="setPeriod('bulan', this)">BULAN INI</button>
-          </div>
-          <div class="stat-grid">
-            <div class="stat-box">
-              <div class="stat-lbl">PENJUALAN</div>
-              <div class="stat-val gold" id="stat-penjualan">Rp0</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-lbl">KEUNTUNGAN</div>
-              <div class="stat-val gold" id="stat-untung">Rp0</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-lbl">TOTAL ORDER</div>
-              <div class="stat-val" id="stat-order">0</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-lbl">POTONGAN</div>
-              <div class="stat-val red" id="stat-potongan">Rp0</div>
-            </div>
-          </div>
-          <div class="section-title" style="margin-top: 20px">RIWAYAT ORDER</div>
-          <div id="order-history">
-            <div class="empty-state">Belum ada order hari ini</div>
-          </div>
-        </section>
       </main>
 
-      <!-- BOTTOM BAR (order only) -->
+      <!-- BOTTOM BAR (Hanya muncul di Tab Order) -->
       <div class="bottom-bar" id="bottom-bar">
         <div class="bottom-summary">
           <span class="summary-label">TOTAL ITEM</span>
@@ -108,21 +77,24 @@
       </div>
     </div>
 
-    <!-- MODAL EDIT STOK -->
+    <!-- MODAL EDIT STOK (Struktur baru untuk UI yang lebih sleek) -->
     <div class="modal-overlay" id="edit-stok-modal">
       <div class="modal-box">
-        <div class="modal-title" id="edit-produk-name"></div>
-        <div class="modal-sub" id="edit-varian-name"></div>
-        <div class="modal-qty-row">
-          <label style="font-size: 13px; color: #888; margin-bottom: 6px; display: block">Jumlah Stok Baru</label>
-          <input type="number" id="edit-qty-input" min="0" style="width: 100%; padding: 12px; border-radius: 10px; border: 1.5px solid #ddd; font-size: 18px; font-weight: 700; text-align: center; outline: none" />
+        <div class="modal-title" id="edit-produk-name">NAMA PRODUK</div>
+        <div class="modal-sub" id="edit-varian-name">Varian Info</div>
+
+        <div class="modal-field">
+          <label class="field-label">JUMLAH STOK BARU</label>
+          <input type="number" id="edit-qty-input" min="0" placeholder="0" />
         </div>
+
         <div class="modal-actions">
-          <button class="modal-btn cancel" onclick="closeEditStok()">BATAL</button>
-          <button class="modal-btn confirm" onclick="submitEditStok()">SIMPAN</button>
+          <button class="btn-cancel" onclick="closeEditStok()">BATAL</button>
+          <button class="btn-confirm-edit" onclick="submitEditStok()">SIMPAN</button>
         </div>
       </div>
     </div>
-    <script src="script.js?v=1.1"></script>
+
+    <script src="script.js?v=1.2"></script>
   </body>
 </html>

@@ -164,17 +164,21 @@ function openEditStok(produkId, produkName, size, color, qty) {
 }
 
 async function submitEditStok() {
+  if (isSubmitting) return;
+
   const { produkId, produkName, size, color } = editTarget;
   const qtyBaru = parseInt(document.getElementById('edit-qty-input').value) || 0;
   const key = `${produkId}_${size}_${color}`;
 
+  // Update Lokal (Optimistic UI)
   stokData[key] = { awal: qtyBaru, masuk: 0, sisa: qtyBaru };
   saveStok();
   renderStok();
   renderProducts();
   closeEditStok();
-  showToast(`✓ Stok direset ke ${qtyBaru}`);
+  showToast(`✓ Stok berhasil direset ke ${qtyBaru}`);
 
+  isSubmitting = true;
   try {
     await fetch(WEBHOOK_EDIT_STOK, {
       method: 'POST',
@@ -191,7 +195,9 @@ async function submitEditStok() {
       }),
     });
   } catch (e) {
-    console.error(e);
+    console.error('Gagal sinkron server', e);
+  } finally {
+    isSubmitting = false;
   }
 }
 
@@ -264,29 +270,25 @@ function renderProducts() {
 // ... (Fungsi switchTab, renderLaporan, kirimLaporan, dll tetap sama)
 
 function switchTab(tab) {
-  document.querySelectorAll('.tab-content, .tab').forEach((el) => el.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-  document.getElementById('bottom-bar').style.display = tab === 'order' ? 'flex' : 'none';
-  if (tab === 'stok') renderStok();
-  if (tab === 'laporan') renderLaporan();
-}
+  // Hapus class active dari semua tab dan tombol
+  document.querySelectorAll('.tab-content').forEach((el) => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach((el) => el.classList.remove('active'));
 
-function renderLaporan() {
-  const filtered = orderHistory.filter((o) => (currentPeriod === 'hari' ? o.tanggal === new Date().toLocaleDateString('id-ID') : true));
-  document.getElementById('stat-penjualan').textContent = formatRp(filtered.reduce((s, o) => s + o.total_penjualan, 0));
-  document.getElementById('stat-untung').textContent = formatRp(filtered.reduce((s, o) => s + o.untung_bersih, 0));
-  document.getElementById('stat-order').textContent = filtered.length;
-  document.getElementById('order-history').innerHTML =
-    filtered
-      .map(
-        (o) => `
-    <div class="order-history-item">
-      <div class="order-history-top"><div class="order-history-name">${o.nama_produk}</div><div class="order-history-untung">+${formatRp(o.untung_bersih)}</div></div>
-      <div class="order-history-detail">${o.varian} · ${o.jumlah} pcs · ${o.platform}</div>
-    </div>`,
-      )
-      .join('') || '<div class="empty-state">Belum ada order</div>';
+  // Aktifkan tab yang dipilih
+  const targetTab = document.getElementById('tab-' + tab);
+  const targetBtn = document.querySelector(`[data-tab="${tab}"]`);
+
+  if (targetTab) targetTab.classList.add('active');
+  if (targetBtn) targetBtn.classList.add('active');
+
+  // Atur visibilitas Bottom Bar (Hanya di tab Order)
+  const bottomBar = document.getElementById('bottom-bar');
+  if (bottomBar) {
+    bottomBar.style.display = tab === 'order' ? 'flex' : 'none';
+  }
+
+  // Jika pindah ke tab stok, render ulang data stok
+  if (tab === 'stok') renderStok();
 }
 
 // Tambahkan fungsi delay di paling atas script
