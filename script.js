@@ -289,16 +289,22 @@ function renderLaporan() {
       .join('') || '<div class="empty-state">Belum ada order</div>';
 }
 
+// Tambahkan fungsi delay di paling atas script
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function kirimLaporan() {
   const items = products.filter((p) => p.quantity > 0);
   const btn = document.getElementById('btn-kirim');
   btn.disabled = true;
   btn.textContent = 'MENGIRIM...';
+
   for (const p of items) {
     const key = `${p.id}_${p.selectedSize}_${p.selectedColor}`;
     const total = p.harga * p.quantity;
     const potongan = Math.round(total * 0.15);
+
     try {
+      console.log(`Mengirim produk: ${p.name}`);
       await fetch(WEBHOOK_ORDER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -313,10 +319,14 @@ async function kirimLaporan() {
           platform: p.selectedPlatform,
         }),
       });
+
+      // Update stok lokal
       if (stokData[key]) {
         stokData[key].sisa = Math.max(0, (stokData[key].sisa || 0) - p.quantity);
         saveStok();
       }
+
+      // Simpan history
       orderHistory.unshift({
         tanggal: new Date().toLocaleDateString('id-ID'),
         nama_produk: p.name,
@@ -327,13 +337,17 @@ async function kirimLaporan() {
         platform: p.selectedPlatform,
       });
       saveHistory();
+
+      // JURUS KUNCI: Kasih delay 1 detik biar n8n & Google Sheets gak panik
+      await sleep(1000);
     } catch (e) {
-      console.error(e);
+      console.error(`Gagal kirim ${p.name}:`, e);
     }
   }
+
   products.forEach((p) => (p.quantity = 0));
   renderProducts();
-  showToast('✓ Order berhasil!');
+  showToast('✓ Semua order berhasil terkirim!');
   btn.disabled = false;
   btn.textContent = 'KIRIM ORDER';
 }
