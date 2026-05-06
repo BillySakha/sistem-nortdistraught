@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>notdistraught</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="app" id="app">
-      <!-- HEADER -->
+      <!-- ══════════ HEADER ══════════ -->
       <header class="header">
         <div class="header-inner">
           <div class="brand">
@@ -18,38 +18,41 @@
             <span class="brand-tag">MGMT SYSTEM</span>
           </div>
           <div class="header-right">
-            <div class="live-dot" id="live-dot"></div>
+            <div class="live-pill">
+              <div class="live-dot" id="live-dot"></div>
+              <span class="live-label">LIVE</span>
+            </div>
           </div>
         </div>
-        <!-- NAVIGASI: Tab Laporan sudah dihapus -->
         <nav class="tabs">
           <button class="tab active" data-tab="order" onclick="switchTab('order')">INPUT ORDER</button>
           <button class="tab" data-tab="stok" onclick="switchTab('stok')">STOK</button>
         </nav>
       </header>
 
-      <!-- TOAST NOTIFICATION -->
+      <!-- ══════════ TOAST ══════════ -->
       <div class="toast" id="toast"></div>
 
-      <!-- MAIN CONTENT -->
+      <!-- ══════════ MAIN ══════════ -->
       <main class="content">
-        <!-- ====== TAB: ORDER ====== -->
+        <!-- TAB: ORDER -->
         <section id="tab-order" class="tab-content active">
           <div class="section-title">PILIH PRODUK</div>
           <div id="product-list"></div>
         </section>
 
-        <!-- ====== TAB: STOK ====== -->
+        <!-- TAB: STOK -->
         <section id="tab-stok" class="tab-content">
           <div class="section-title">STATUS STOK</div>
           <div id="stok-list"></div>
 
-          <!-- RESTOCK MODAL (Input Tambah Stok) -->
+          <!-- RESTOCK MODAL -->
           <div class="modal-overlay" id="restock-modal">
             <div class="modal-box">
-              <div class="modal-title">RESTOCK PRODUK</div>
-              <div class="modal-produk" id="restock-produk-name">—</div>
-              <div class="modal-varian" id="restock-varian-name">—</div>
+              <div class="modal-eyebrow">RESTOCK</div>
+              <div class="modal-title" id="restock-produk-name">—</div>
+              <div class="modal-sub" id="restock-varian-name">—</div>
+              <div class="modal-divider"></div>
               <div class="modal-field">
                 <label class="field-label">JUMLAH RESTOCK</label>
                 <div class="qty-ctrl-big">
@@ -67,27 +70,33 @@
         </section>
       </main>
 
-      <!-- BOTTOM BAR (Hanya muncul di Tab Order) -->
+      <!-- ══════════ BOTTOM BAR ══════════ -->
       <div class="bottom-bar" id="bottom-bar">
         <div class="bottom-summary">
           <span class="summary-label">TOTAL ITEM</span>
           <span class="summary-val" id="total-item-count">0 item</span>
         </div>
-        <button class="btn-kirim" id="btn-kirim" onclick="kirimLaporan()">KIRIM ORDER</button>
+        <button class="btn-kirim" id="btn-kirim" onclick="kirimLaporan()">
+          <span>KIRIM ORDER</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </button>
       </div>
     </div>
 
-    <!-- MODAL EDIT STOK (Struktur baru untuk UI yang lebih sleek) -->
+    <!-- ══════════ EDIT STOK MODAL ══════════ -->
     <div class="modal-overlay" id="edit-stok-modal">
       <div class="modal-box">
+        <div class="modal-eyebrow">EDIT STOK</div>
         <div class="modal-title" id="edit-produk-name">NAMA PRODUK</div>
         <div class="modal-sub" id="edit-varian-name">Varian Info</div>
-
+        <div class="modal-divider"></div>
         <div class="modal-field">
           <label class="field-label">JUMLAH STOK BARU</label>
           <input type="number" id="edit-qty-input" min="0" placeholder="0" />
         </div>
-
         <div class="modal-actions">
           <button class="btn-cancel" onclick="closeEditStok()">BATAL</button>
           <button class="btn-confirm-edit" onclick="submitEditStok()">SIMPAN</button>
@@ -95,6 +104,6 @@
       </div>
     </div>
 
-    <script src="script.js?v=1.2"></script>
+    <script src="script.js?v=2.0"></script>
   </body>
 </html>
