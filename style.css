@@ -8,6 +8,15 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Pastikan semua elemen interaktif mewarisi font */
+button,
+input,
+select,
+textarea,
+label {
+  font-family: inherit;
+}
+
 :root {
   --bg: #0d0d0d;
   --bg2: #161616;
@@ -35,7 +44,7 @@ body {
   overflow: hidden;
   background: var(--bg);
   color: var(--white);
-  font-family: var(--font-body);
+  font-family: var(--font-body); /* Font utama: DM Sans */
   font-size: 14px;
   line-height: 1.5;
 }
@@ -67,7 +76,7 @@ body {
 }
 
 .brand-name {
-  font-family: var(--font-display);
+  font-family: var(--font-display); /* Bebas Neue */
   font-size: 22px;
   letter-spacing: 3px;
   line-height: 1;
@@ -116,6 +125,7 @@ body {
   letter-spacing: 1.5px;
   padding: 12px 4px;
   cursor: pointer;
+  transition: color 0.2s;
 }
 .tab.active {
   color: var(--gold);
@@ -127,7 +137,7 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  padding-bottom: 100px;
+  padding-bottom: 110px;
 }
 .tab-content {
   display: none;
@@ -135,12 +145,14 @@ body {
 .tab-content.active {
   display: block;
 }
+
 .section-title {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 2px;
   color: var(--muted);
   margin-bottom: 12px;
+  text-transform: uppercase;
 }
 
 /* ===================== PRODUCT CARD (ORDER) ===================== */
@@ -148,7 +160,7 @@ body {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   padding: 14px;
   display: flex;
   gap: 12px;
@@ -158,8 +170,8 @@ body {
 }
 
 .product-thumb {
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   background: var(--bg3);
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -167,6 +179,7 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .product-name {
@@ -177,27 +190,37 @@ body {
 }
 .product-price {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 18px;
   color: var(--gold);
   letter-spacing: 1px;
 }
 
-/* CHIPS */
+/* CHIPS & LABELS */
+.chip-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted2);
+  margin-bottom: 6px;
+  display: block;
+  letter-spacing: 0.5px;
+}
+
 .chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 .chip,
 .platform-chip {
-  padding: 5px 12px;
+  padding: 6px 12px;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   border: 1px solid var(--border2);
   color: var(--muted2);
   background: var(--bg3);
+  cursor: pointer;
 }
 .chip.active {
   background: var(--gold);
@@ -239,13 +262,11 @@ body {
   border-bottom: none;
 }
 
-/* Tombol Edit & Restock di List */
 .stok-actions-cell {
   display: flex;
   gap: 8px;
   align-items: center;
 }
-
 .stok-edit-btn {
   background: #1a1a1a;
   border: 1px solid #444;
@@ -254,8 +275,8 @@ body {
   border-radius: 6px;
   font-size: 10px;
   font-weight: 700;
+  cursor: pointer;
 }
-
 .stok-restock-btn {
   background: var(--gold-dim);
   color: #fff;
@@ -264,6 +285,7 @@ body {
   border-radius: 6px;
   font-size: 10px;
   font-weight: 700;
+  cursor: pointer;
 }
 
 .badge {
@@ -286,15 +308,16 @@ body {
 }
 
 /* ===================== QUANTITY CONTROLS ===================== */
-/* Style Standar (di Card Order) */
+/* Standard (Order Card) */
 .qty-ctrl {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 8px;
 }
 .qty-btn {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   background: var(--bg3);
   border: 1px solid var(--border2);
   border-radius: 8px;
@@ -302,15 +325,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 .qty-num {
   font-family: var(--font-display);
-  font-size: 18px;
-  min-width: 20px;
+  font-size: 20px;
+  min-width: 24px;
   text-align: center;
 }
 
-/* Style BIG (Khusus Modal Restock agar nyaman di HP) */
+/* BIG (Restock Modal) */
+#restock-modal .modal-field {
+  text-align: center;
+}
 .qty-ctrl-big {
   display: flex;
   align-items: center;
@@ -319,8 +346,8 @@ body {
   margin: 20px 0;
 }
 .qty-btn-big {
-  width: 54px;
-  height: 54px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: #222;
   border: 1px solid #444;
@@ -329,6 +356,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 .qty-btn-big:active {
   background: #333;
@@ -336,9 +364,9 @@ body {
 }
 .qty-big {
   font-family: var(--font-display);
-  font-size: 36px;
+  font-size: 40px;
   color: var(--gold);
-  min-width: 50px;
+  min-width: 60px;
   text-align: center;
 }
 
@@ -359,7 +387,6 @@ body {
 .modal-overlay.show {
   display: flex;
 }
-
 .modal-box {
   background: #121212;
   border: 1px solid #333;
@@ -372,12 +399,12 @@ body {
 
 .modal-title {
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 26px;
   letter-spacing: 1px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .modal-sub {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted2);
   margin-bottom: 20px;
 }
@@ -389,7 +416,7 @@ body {
   border: 1px solid #333;
   border-radius: 12px;
   color: #fff;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   text-align: center;
   outline: none;
@@ -409,9 +436,10 @@ body {
   flex: 1;
   padding: 14px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   border: none;
+  cursor: pointer;
 }
 .btn-cancel {
   background: #222;
@@ -445,9 +473,11 @@ body {
   background: var(--gold);
   color: #000;
   border: none;
-  border-radius: 8px;
-  padding: 12px 24px;
+  border-radius: 10px;
+  padding: 14px 28px;
   font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
 }
 
 .toast {
@@ -457,8 +487,8 @@ body {
   right: 16px;
   background: var(--bg3);
   border: 1px solid var(--gold-dim);
-  border-radius: 8px;
-  padding: 12px;
+  border-radius: 10px;
+  padding: 14px;
   color: var(--gold);
   font-size: 13px;
   font-weight: 600;
@@ -471,4 +501,49 @@ body {
 .toast.show {
   opacity: 1;
   transform: translateY(5px);
+}
+
+/* Styling khusus agar tulisan STOK pakai Bebas Neue */
+.product-stok {
+  font-family: var(--font-display); /* Paksa pake font gahar lo */
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--white);
+  text-transform: uppercase;
+}
+
+/* Perbaikan agar label 'UKURAN', 'WARNA', dll tidak polos */
+.chip-label,
+.section-title,
+.qty-label {
+  font-family: var(--font-display);
+  font-weight: 400; /* Bebas Neue biasanya cukup tebal secara alami */
+}
+
+/* FORCE UPDATE UNTUK LABEL BIAR GAK POLOS */
+.chip-label,
+.section-title,
+.product-stok,
+.summary-label,
+.summary-val,
+.tab {
+  font-family: var(--font-display) !important; /* Paksa pake Bebas Neue */
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.product-stok {
+  font-size: 14px;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+
+.summary-label {
+  font-size: 11px;
+  color: var(--muted2);
+}
+
+.summary-val {
+  font-size: 20px;
+  color: var(--white);
 }

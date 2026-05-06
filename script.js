@@ -243,6 +243,7 @@ function renderProducts() {
       const sizeChips = p.sizes.map((s) => `<div class="chip ${p.selectedSize === s ? 'active' : ''}" onclick="selectVariant('${p.id}','size','${s}')">${s}</div>`).join('');
       const colorChips = p.colors.map((c) => `<div class="chip ${p.selectedColor === c ? 'active' : ''}" onclick="selectVariant('${p.id}','color','${c}')">${c}</div>`).join('');
       const platformChips = ['TikTok', 'Shopee'].map((pl) => `<div class="platform-chip ${p.selectedPlatform === pl ? 'active' : ''}" onclick="selectVariant('${p.id}','platform','${pl}')">${pl}</div>`).join('');
+
       return `
       <div class="product-card ${p.quantity > 0 ? 'has-qty' : ''}">
         <div class="product-thumb">${p.image ? `<img src="${p.image}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">` : `<div class="thumb-icon">👕</div>`}</div>
@@ -253,7 +254,8 @@ function renderProducts() {
           <div class="chip-group"><div class="chip-label">WARNA</div><div class="chip-row">${colorChips}</div></div>
           <div class="chip-group"><div class="chip-label">PLATFORM</div><div class="chip-row">${platformChips}</div></div>
           <div class="qty-row">
-            <div class="qty-label">STOK: ${sisa} pcs</div>
+            <!-- PERBAIKAN: Ganti 'qty-label' menjadi 'product-stok' agar identitasnya jelas -->
+            <div class="product-stok">STOK: ${sisa} pcs</div>
             <div class="qty-ctrl">
               <button class="qty-btn" onclick="updateQty('${p.id}',-1)">−</button>
               <span class="qty-num ${p.quantity > 0 ? 'active' : ''}">${p.quantity}</span>
