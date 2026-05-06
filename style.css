@@ -33,9 +33,6 @@ html,
 body {
   height: 100%;
   overflow: hidden;
-}
-
-body {
   background: var(--bg);
   color: var(--white);
   font-family: var(--font-body);
@@ -54,12 +51,11 @@ body {
   overflow: hidden;
 }
 
-/* ===================== HEADER ===================== */
+/* ===================== HEADER & TABS ===================== */
 .header {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  position: relative;
   z-index: 10;
 }
 
@@ -70,17 +66,10 @@ body {
   padding: 14px 16px 10px;
 }
 
-.brand {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
 .brand-name {
   font-family: var(--font-display);
   font-size: 22px;
   letter-spacing: 3px;
-  color: var(--white);
   line-height: 1;
 }
 
@@ -111,52 +100,41 @@ body {
   }
 }
 
-/* TABS */
 .tabs {
   display: flex;
   padding: 0 16px;
-  gap: 0;
   border-top: 1px solid var(--border);
 }
-
 .tab {
   flex: 1;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--muted);
-  font-family: var(--font-body);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.5px;
-  padding: 10px 4px;
+  padding: 12px 4px;
   cursor: pointer;
-  transition:
-    color 0.2s,
-    border-color 0.2s;
 }
-
 .tab.active {
   color: var(--gold);
   border-bottom-color: var(--gold);
 }
 
-/* ===================== CONTENT ===================== */
+/* ===================== CONTENT AREA ===================== */
 .content {
   flex: 1;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   padding: 16px;
-  padding-bottom: 90px;
+  padding-bottom: 100px;
 }
-
 .tab-content {
   display: none;
 }
 .tab-content.active {
   display: block;
 }
-
 .section-title {
   font-size: 9px;
   font-weight: 700;
@@ -165,7 +143,7 @@ body {
   margin-bottom: 12px;
 }
 
-/* ===================== PRODUCT CARD ===================== */
+/* ===================== PRODUCT CARD (ORDER) ===================== */
 .product-card {
   background: var(--bg2);
   border: 1px solid var(--border);
@@ -174,44 +152,21 @@ body {
   padding: 14px;
   display: flex;
   gap: 12px;
-  transition: border-color 0.2s;
 }
-
 .product-card.has-qty {
   border-color: var(--gold-dim);
 }
 
-/* Update CSS untuk Thumbnail Gambar */
 .product-thumb {
-  width: 80px; /* Sedikit lebih lebar biar gambarnya jelas */
-  height: 80px;
+  width: 70px;
+  height: 70px;
   background: var(--bg3);
   border-radius: 8px;
   border: 1px solid var(--border);
-  overflow: hidden; /* Biar gambar nggak keluar jalur */
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.thumb-icon {
-  font-size: 20px;
-  line-height: 1;
-}
-
-.thumb-label {
-  font-size: 8px;
-  color: var(--muted);
-  letter-spacing: 0.5px;
-  text-align: center;
-  padding: 0 4px;
-}
-
-.product-body {
-  flex: 1;
-  min-width: 0;
 }
 
 .product-name {
@@ -219,191 +174,42 @@ body {
   font-weight: 700;
   color: var(--white);
   margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-
 .product-price {
   font-family: var(--font-display);
   font-size: 17px;
   color: var(--gold);
   letter-spacing: 1px;
-  margin-bottom: 8px;
 }
 
-.chip-group {
-  margin-bottom: 6px;
-}
-
-.chip-label {
-  font-size: 8px;
-  color: var(--muted);
-  letter-spacing: 1px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
+/* CHIPS */
 .chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 6px;
+  margin-top: 6px;
 }
-
-.chip {
-  padding: 4px 10px;
-  border-radius: 4px;
+.chip,
+.platform-chip {
+  padding: 5px 12px;
+  border-radius: 6px;
   font-size: 10px;
   font-weight: 700;
   border: 1px solid var(--border2);
   color: var(--muted2);
   background: var(--bg3);
-  cursor: pointer;
-  transition: all 0.15s;
-  letter-spacing: 0.5px;
 }
-
 .chip.active {
   background: var(--gold);
-  color: #0d0d0d;
+  color: #000;
   border-color: var(--gold);
 }
-
-.platform-chip {
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  border: 1px solid var(--border2);
-  color: var(--muted2);
-  background: var(--bg3);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
 .platform-chip.active {
-  background: var(--bg3);
-  color: var(--white);
   border-color: var(--white);
-}
-
-/* QTY */
-.qty-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.qty-label {
-  font-size: 11px;
-  color: var(--muted);
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.qty-ctrl {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.qty-btn {
-  width: 28px;
-  height: 28px;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
   color: var(--white);
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s;
-  line-height: 1;
 }
 
-.qty-btn:active {
-  background: var(--gold);
-  color: #0d0d0d;
-}
-
-.qty-num {
-  font-family: var(--font-display);
-  font-size: 20px;
-  color: var(--white);
-  min-width: 24px;
-  text-align: center;
-  line-height: 1;
-}
-
-.qty-num.active {
-  color: var(--gold);
-}
-
-/* ===================== BOTTOM BAR ===================== */
-.bottom-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--bg);
-  border-top: 1px solid var(--border);
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 20;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom));
-}
-
-.bottom-summary {
-  flex: 1;
-}
-.summary-label {
-  font-size: 9px;
-  color: var(--muted);
-  letter-spacing: 1.5px;
-  font-weight: 700;
-  display: block;
-}
-.summary-val {
-  font-family: var(--font-display);
-  font-size: 18px;
-  color: var(--white);
-  letter-spacing: 1px;
-}
-
-.btn-kirim {
-  background: var(--gold);
-  color: #0d0d0d;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 24px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  cursor: pointer;
-  transition:
-    opacity 0.2s,
-    transform 0.15s;
-  white-space: nowrap;
-}
-
-.btn-kirim:active {
-  transform: scale(0.97);
-  opacity: 0.85;
-}
-.btn-kirim:disabled {
-  background: var(--muted);
-  cursor: not-allowed;
-}
-
-/* ===================== STOK ===================== */
+/* ===================== STOK LIST ===================== */
 .stok-card {
   background: var(--bg2);
   border: 1px solid var(--border);
@@ -411,66 +217,61 @@ body {
   margin-bottom: 10px;
   overflow: hidden;
 }
-
 .stok-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
 }
-
 .stok-name {
   font-size: 13px;
   font-weight: 700;
-  color: var(--white);
-}
-.stok-total {
-  font-size: 10px;
-  color: var(--muted);
 }
 
 .stok-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border);
 }
-
 .stok-row:last-child {
   border-bottom: none;
 }
 
-.stok-varian-info {
+/* Tombol Edit & Restock di List */
+.stok-actions-cell {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: 8px;
+  align-items: center;
 }
-.stok-varian {
-  font-size: 12px;
-  color: var(--muted2);
-}
-.stok-restock-btn {
-  font-size: 9px;
+
+.stok-edit-btn {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  color: #aaa;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  color: var(--gold);
-  background: none;
-  border: 1px solid var(--gold-dim);
-  border-radius: 4px;
-  padding: 3px 8px;
-  cursor: pointer;
+}
+
+.stok-restock-btn {
+  background: var(--gold-dim);
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .badge {
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.5px;
 }
-
 .badge.ok {
   background: var(--green-bg);
   color: var(--green);
@@ -484,121 +285,64 @@ body {
   color: var(--red);
 }
 
-/* ===================== LAPORAN ===================== */
-.period-row {
+/* ===================== QUANTITY CONTROLS ===================== */
+/* Style Standar (di Card Order) */
+.qty-ctrl {
   display: flex;
-  gap: 6px;
-  margin-bottom: 16px;
+  align-items: center;
+  gap: 12px;
 }
-
-.period-btn {
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
+.qty-btn {
+  width: 30px;
+  height: 30px;
+  background: var(--bg3);
   border: 1px solid var(--border2);
-  background: none;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.period-btn.active {
-  background: var(--gold);
-  color: #0d0d0d;
-  border-color: var(--gold);
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.stat-box {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px;
-}
-
-.stat-lbl {
-  font-size: 8px;
-  color: var(--muted);
-  letter-spacing: 1.5px;
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-.stat-val {
-  font-family: var(--font-display);
-  font-size: 20px;
-  letter-spacing: 1px;
+  border-radius: 8px;
   color: var(--white);
-}
-.stat-val.gold {
-  color: var(--gold);
-}
-.stat-val.red {
-  color: var(--red);
-}
-
-.order-history-item {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-}
-
-.order-history-top {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 4px;
+  align-items: center;
+  justify-content: center;
 }
-
-.order-history-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--white);
-}
-.order-history-untung {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--green);
+.qty-num {
   font-family: var(--font-display);
-  letter-spacing: 0.5px;
-}
-.order-history-detail {
-  font-size: 11px;
-  color: var(--muted);
+  font-size: 18px;
+  min-width: 20px;
+  text-align: center;
 }
 
-.platform-badge {
-  display: inline-block;
-  font-size: 9px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 3px;
-  margin-left: 4px;
-  letter-spacing: 0.5px;
+/* Style BIG (Khusus Modal Restock agar nyaman di HP) */
+.qty-ctrl-big {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  margin: 20px 0;
+}
+.qty-btn-big {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #222;
+  border: 1px solid #444;
+  color: #fff;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qty-btn-big:active {
+  background: #333;
+  transform: scale(0.9);
+}
+.qty-big {
+  font-family: var(--font-display);
+  font-size: 36px;
+  color: var(--gold);
+  min-width: 50px;
+  text-align: center;
 }
 
-.platform-badge.tiktok {
-  background: #1a1a2e;
-  color: #8888ff;
-  border: 1px solid #333;
-}
-.platform-badge.shopee {
-  background: #2a1000;
-  color: #f97316;
-  border: 1px solid #3a1800;
-}
-
-/* ===================== MODAL ===================== */
-/* Update Modal UI biar Sleek */
+/* ===================== MODALS ===================== */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -606,13 +350,12 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.85); /* Lebih gelap biar fokus */
-  backdrop-filter: blur(4px); /* Efek blur estetik */
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(5px);
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
-
 .modal-overlay.show {
   display: flex;
 }
@@ -625,35 +368,18 @@ body {
   width: 90%;
   max-width: 340px;
   text-align: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .modal-title {
-  font-family: 'Bebas Neue', cursive;
+  font-family: var(--font-display);
   font-size: 24px;
-  color: #fff;
   letter-spacing: 1px;
+  margin-bottom: 4px;
 }
-
 .modal-sub {
-  font-size: 14px;
-  color: #888;
+  font-size: 13px;
+  color: var(--muted2);
   margin-bottom: 20px;
-}
-
-/* Styling Input Stok Baru */
-.modal-field {
-  margin: 20px 0;
-  text-align: left;
-}
-
-.field-label {
-  font-size: 11px;
-  color: #666;
-  font-weight: 700;
-  margin-bottom: 8px;
-  display: block;
-  letter-spacing: 1px;
 }
 
 #edit-qty-input {
@@ -663,53 +389,67 @@ body {
   border: 1px solid #333;
   border-radius: 12px;
   color: #fff;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   text-align: center;
   outline: none;
-  transition: border 0.3s;
 }
-
 #edit-qty-input:focus {
-  border-color: #d4af37; /* Warna aksen gold */
+  border-color: var(--gold);
 }
 
-/* Tombol Modal */
 .modal-actions {
   display: flex;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 24px;
 }
-
 .btn-cancel,
 .btn-confirm,
 .btn-confirm-edit {
   flex: 1;
   padding: 14px;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  cursor: pointer;
-  transition: 0.2s;
   border: none;
 }
-
 .btn-cancel {
   background: #222;
   color: #888;
 }
-
-.btn-confirm-edit {
-  background: #fff; /* Putih bersih biar kontras */
-  color: #000;
-}
-
 .btn-confirm {
-  background: #d4af37;
+  background: var(--gold);
+  color: #000;
+}
+.btn-confirm-edit {
+  background: #fff;
   color: #000;
 }
 
-/* ===================== TOAST ===================== */
+/* ===================== BOTTOM BAR & TOAST ===================== */
+.bottom-bar {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+.bottom-summary {
+  flex: 1;
+}
+.btn-kirim {
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 700;
+}
+
 .toast {
   position: absolute;
   top: 80px;
@@ -718,50 +458,17 @@ body {
   background: var(--bg3);
   border: 1px solid var(--gold-dim);
   border-radius: 8px;
-  padding: 12px 16px;
+  padding: 12px;
+  color: var(--gold);
   font-size: 13px;
   font-weight: 600;
-  color: var(--gold);
+  text-align: center;
   z-index: 200;
   opacity: 0;
-  transform: translateY(-8px);
-  transition: all 0.3s;
+  transition: 0.3s;
   pointer-events: none;
-  letter-spacing: 0.3px;
 }
-
 .toast.show {
   opacity: 1;
-  transform: translateY(0);
-}
-
-/* ===================== EMPTY STATE ===================== */
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--muted);
-  font-size: 13px;
-  letter-spacing: 0.3px;
-}
-
-/* ==================== EDIT BUTTON ======================= */
-.stok-edit-btn {
-  padding: 5px 10px;
-  background: #f0f4ff;
-  border: 1.5px solid #6c5ce7;
-  color: #6c5ce7;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.stok-hapus-btn {
-  padding: 5px 8px;
-  background: #fff0f0;
-  border: 1.5px solid #ff5252;
-  color: #ff5252;
-  border-radius: 8px;
-  font-size: 11px;
-  cursor: pointer;
+  transform: translateY(5px);
 }
