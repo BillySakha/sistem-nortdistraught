@@ -54,7 +54,7 @@ function saveHistory() {
 function fixGDriveLink(url) {
   if (!url) return '';
   const match = url.match(/\/d\/([^\/]+)/);
-  return match ? `https://lh3.googleusercontent.com/d/${match[1]}` : url;
+  return match ? `https://lh3.googleusercontent.com/u/0/d/${match[1]}` : url;
 }
 
 function formatRp(num) {
