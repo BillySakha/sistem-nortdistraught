@@ -202,7 +202,7 @@ function renderProducts() {
       const flashSaleUI = `
         <div class="flash-sale-section" style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(0,0,0,0.1);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-family: var(--font-body); font-size: 10px; font-weight: 800; color: #c0392b; letter-spacing: 1.5px;">MODE FLASH SALE</span>
+            <span style="font-family: var(--font-body); font-size: 10px; font-weight: 800; color: #c0392b; border: 1px solid #c0392b; padding: 2px 6px; border-radius: 4px; letter-spacing: 1px;">MODE FLASH SALE</span>
             <label class="switch">
               <input type="checkbox" ${p.isFlashSale ? 'checked' : ''} onchange="toggleFlashSale('${p.id}')">
               <span class="slider"></span>
@@ -212,12 +212,18 @@ function renderProducts() {
             p.isFlashSale
               ? `
             <div style="display: flex; align-items: center; gap: 8px; animation: slideUp 0.3s ease;">
-              <span style="font-family: var(--font-display); color: #c0392b; font-size: 16px;">Rp</span>
-              <input type="number" 
-                     placeholder="Harga promo..." 
-                     value="${p.flashPrice || ''}" 
-                     oninput="updateFlashPrice('${p.id}', this.value)"
-                     style="flex: 1; padding: 8px 12px; border: 1.5px solid #c0392b; border-radius: 8px; font-family: var(--font-display); font-size: 18px; outline: none; background: #fff;">
+              <div style="position: relative; flex: 1;">
+                <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-family: var(--font-display); color: #c0392b; font-size: 14px;">Rp</span>
+                <input type="number" 
+                       id="input-flash-${p.id}"
+                       placeholder="Harga promo..." 
+                       value="${p.flashPrice || ''}" 
+                       style="width: 100%; padding: 10px 10px 10px 30px; border: 1.5px solid #c0392b; border-radius: 8px; font-family: var(--font-display); font-size: 18px; outline: none; background: #fff;">
+              </div>
+              <button onclick="applyFlashPrice('${p.id}')" 
+                      style="background: #c0392b; color: #fff; border: none; padding: 0 15px; border-radius: 8px; font-family: var(--font-body); font-size: 11px; font-weight: 800; cursor: pointer; height: 46px; display: flex; align-items: center; justify-content: center;">
+                SET
+              </button>
             </div>
           `
               : ''
@@ -404,6 +410,35 @@ function updateFlashPrice(id, val) {
   p.harga = numVal; // Override harga yang bakal dikirim ke n8n [cite: 188]
 }
 
+// ===================== BUTTON FLASH SALE =====================
+// GANTI fungsi updateFlashPrice yang lama dengan ini:
+function applyFlashPrice(id) {
+  const p = products.find((x) => x.id === id);
+  const inputEl = document.getElementById(`input-flash-${id}`);
+
+  if (!p || !inputEl) return;
+
+  // 1. Ambil nilai & bersihkan dari karakter non-angka (biar gak error kalau ada titik)
+  const rawVal = inputEl.value;
+  const cleanVal = rawVal.toString().replace(/\D/g, ''); // [cite: 1, 127-128]
+  const numVal = parseInt(cleanVal) || 0;
+
+  if (numVal <= 0) {
+    showToast('⚠️ Masukkan harga yang valid!'); // [cite: 1, 122-123]
+    return;
+  }
+
+  // 2. Kunci harga baru ke memori aplikasi
+  p.flashPrice = numVal;
+  p.harga = numVal; // Menimpa harga lama [cite: 1, 208, 213]
+
+  // 3. Kasih feedback ke temen lo kalau harga udah kepasang
+  showToast('✓ Harga promo berhasil dikunci!');
+
+  // 4. Render ulang supaya harga di kartu produk (formatRp) ikut berubah
+  renderProducts();
+}
+
 // ===================== QUANTITY CONTROLS =====================
 function updateQty(produkId, delta) {
   const p = products.find((p) => p.id === produkId);
@@ -576,11 +611,10 @@ async function kirimLaporan() {
   for (const p of items) {
     const key = getStokKey(p.id, p.selectedSize, p.selectedColor);
 
-    // 1. TOTAL PENJUALAN (Menggunakan p.harga yang sudah ter-update dari varian/flash sale)
+    // 1. TOTAL PENJUALAN
     const total = p.harga * p.quantity;
 
-    // 2. LOGIKA BARU: Potongan Platform Dinamis
-    // Berdasarkan analisis screenshot Shopee (~22%) dan TikTok (15%)
+    // 2. LOGIKA POTONGAN (Tetap pake 22% sesuai kodingan lo)
     const platform = (p.selectedPlatform || '').toLowerCase();
     const rate = platform === 'shopee' ? 0.22 : 0.15;
 
@@ -597,26 +631,24 @@ async function kirimLaporan() {
           nama_produk: p.name,
           varian: `${p.selectedSize}-${p.selectedColor}`,
           jumlah: p.quantity,
-          harga_jual: p.harga, // Harga ini sudah otomatis harga promo kalau mode flash sale aktif
+          harga_jual: p.harga,
           hpp: p.hpp,
           platform: p.selectedPlatform,
         }),
       });
 
-      // Update stok lokal setelah order terkirim
       if (stokData[key]) {
         stokData[key].sisa = Math.max(0, (stokData[key].sisa ?? 0) - p.quantity);
         saveStok();
       }
 
-      // Simpan ke history dengan Untung Bersih yang baru
       orderHistory.unshift({
         tanggal: new Date().toLocaleDateString('id-ID'),
         nama_produk: p.name,
         varian: `${p.selectedSize}-${p.selectedColor}`,
         jumlah: p.quantity,
         total_penjualan: total,
-        untung_bersih: untungBersih, // Hasil itungan dinamis di atas
+        untung_bersih: untungBersih,
         platform: p.selectedPlatform,
       });
       saveHistory();
@@ -628,7 +660,6 @@ async function kirimLaporan() {
     }
   }
 
-  // Kirim ringkasan via Telegram (opsional)
   if (tg?.sendData) {
     const lines = items.map((p) => `${p.name} | ${p.selectedSize} | ${p.selectedPlatform} | x${p.quantity}`);
     const report = `ORDER NOTDISTRAUGHT\n${new Date().toLocaleString('id-ID')}\n\n${lines.join('\n')}`;
@@ -637,11 +668,19 @@ async function kirimLaporan() {
     } catch (_) {}
   }
 
-  // Reset semua quantity & state flash sale
+  // --- BAGIAN YANG DI-UPDATE: RESET HARGA KE NORMAL ---
   products.forEach((p) => {
     p.quantity = 0;
-    p.isFlashSale = false; // Matikan mode flash sale setelah terkirim
-    p.flashPrice = null;
+    if (p.isFlashSale) {
+      p.isFlashSale = false;
+      p.flashPrice = null;
+
+      // Ambil balik harga normal dari variantMap sesuai size-nya
+      const vData = p.variantMap[p.selectedSize.toLowerCase().trim()];
+      if (vData) {
+        p.harga = vData.harga; // Harga balik normal! [cite: 1, 167-168]
+      }
+    }
   });
 
   renderProducts();
@@ -649,7 +688,7 @@ async function kirimLaporan() {
   if (allSuccess) {
     showToast('✓ Semua order berhasil terkirim!');
   } else {
-    showToast('⚠️ Sebagian order gagal — cek koneksi!');
+    showToast('⚠️ Sebagian order gagal!');
   }
 
   if (btn) {
