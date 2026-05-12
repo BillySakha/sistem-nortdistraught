@@ -100,12 +100,16 @@ async function fetchProducts() {
       const produkId = item['ID Produk'] || 'P000';
       const size = (item['Varian Size'] || '').trim();
       const color = (item['Varian Warna '] || item['Varian Warna'] || '').trim();
+
+      // Ambil data harga & hpp dari baris ini
+      const currentHpp = parseInt(item['HPP']?.toString().replace(/\D/g, '')) || 0;
+      const currentHarga = parseInt(item['Harga Jual']?.toString().replace(/\D/g, '')) || 0;
+
       const serverAwal = parseInt(item['Stok Awal']) || 0;
       const serverMasuk = parseInt(item['Stok Masuk']) || 0;
       const serverSisa = parseInt(item['Stok Sisa']) || 0;
       const key = getStokKey(produkId, size, color);
 
-      // Sinkronisasi lokal ↔ server: server menang jika sisa-nya >= nilai lokal
       if (!stokData[key] || serverSisa >= (stokData[key]?.sisa ?? 0)) {
         stokData[key] = { awal: serverAwal, masuk: serverMasuk, sisa: serverSisa };
       }
@@ -116,15 +120,21 @@ async function fetchProducts() {
           name: name,
           sizes: [],
           colors: [],
-          hpp: parseInt(item['HPP']?.toString().replace(/\D/g, '')) || 0,
-          harga: parseInt(item['Harga Jual']?.toString().replace(/\D/g, '')) || 0,
+          variantMap: {}, // <--- TEMPAT BARU: Simpan data harga tiap varian
           image: fixGDriveLink(item['Gambar Produk']),
           selectedSize: size,
           selectedColor: color,
           selectedPlatform: 'TikTok',
           quantity: 0,
+          // Harga awal (default)
+          hpp: currentHpp,
+          harga: currentHarga,
         };
       }
+
+      // REKAM DATA: Simpan harga & hpp spesifik untuk size ini ke dalam map
+      const vKey = size.toLowerCase();
+      grouped[name].variantMap[vKey] = { hpp: currentHpp, harga: currentHarga };
 
       if (size && !grouped[name].sizes.includes(size)) grouped[name].sizes.push(size);
       if (color && !grouped[name].colors.includes(color)) grouped[name].colors.push(color);
@@ -135,7 +145,7 @@ async function fetchProducts() {
     renderProducts();
   } catch (err) {
     console.error('fetchProducts error:', err);
-    renderProducts(); // Render dari data lokal jika ada
+    renderProducts();
   }
 }
 
