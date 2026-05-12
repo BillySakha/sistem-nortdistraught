@@ -198,6 +198,33 @@ function renderProducts() {
       // Stok badge color
       const stokColor = sisa === 0 ? '#c0392b' : sisa <= 3 ? '#b05a00' : '#1a7a4a';
 
+      // --- BAGIAN UPDATE: UI FLASH SALE ---
+      const flashSaleUI = `
+        <div class="flash-sale-section" style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(0,0,0,0.1);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-family: var(--font-body); font-size: 10px; font-weight: 800; color: #c0392b; letter-spacing: 1.5px;">MODE FLASH SALE</span>
+            <label class="switch">
+              <input type="checkbox" ${p.isFlashSale ? 'checked' : ''} onchange="toggleFlashSale('${p.id}')">
+              <span class="slider"></span>
+            </label>
+          </div>
+          ${
+            p.isFlashSale
+              ? `
+            <div style="display: flex; align-items: center; gap: 8px; animation: slideUp 0.3s ease;">
+              <span style="font-family: var(--font-display); color: #c0392b; font-size: 16px;">Rp</span>
+              <input type="number" 
+                     placeholder="Harga promo..." 
+                     value="${p.flashPrice || ''}" 
+                     oninput="updateFlashPrice('${p.id}', this.value)"
+                     style="flex: 1; padding: 8px 12px; border: 1.5px solid #c0392b; border-radius: 8px; font-family: var(--font-display); font-size: 18px; outline: none; background: #fff;">
+            </div>
+          `
+              : ''
+          }
+        </div>
+      `;
+
       return `
       <div class="product-card ${p.quantity > 0 ? 'has-qty' : ''}">
         <div class="product-thumb">${imgHtml}</div>
@@ -230,6 +257,8 @@ function renderProducts() {
             <span class="chip-label">PLATFORM</span>
             <div class="chip-row">${platformChips}</div>
           </div>
+
+          ${flashSaleUI}
 
           <div class="qty-row">
             <div class="product-stok" style="color:${stokColor}">
@@ -347,6 +376,32 @@ function selectVariant(produkId, type, value) {
 
   // Render ulang biar harga baru langsung muncul di layar HP
   renderProducts();
+}
+
+// ===================== FLASH SALE =====================
+function toggleFlashSale(id) {
+  const p = products.find((x) => x.id === id);
+  if (!p) return;
+
+  p.isFlashSale = !p.isFlashSale;
+
+  // Kalau saklar dimatiin, balikin harga ke harga normal varian yang dipilih
+  if (!p.isFlashSale) {
+    const vData = p.variantMap[p.selectedSize.toLowerCase().trim()];
+    p.harga = vData ? vData.harga : p.harga; // Balik ke harga normal [cite: 123-124]
+    p.flashPrice = null;
+  }
+
+  renderProducts(); // Gambar ulang biar kotak input muncul/ilang
+}
+
+function updateFlashPrice(id, val) {
+  const p = products.find((x) => x.id === id);
+  if (!p) return;
+
+  const numVal = parseInt(val) || 0;
+  p.flashPrice = numVal;
+  p.harga = numVal; // Override harga yang bakal dikirim ke n8n [cite: 188]
 }
 
 // ===================== QUANTITY CONTROLS =====================
@@ -520,8 +575,16 @@ async function kirimLaporan() {
 
   for (const p of items) {
     const key = getStokKey(p.id, p.selectedSize, p.selectedColor);
+
+    // 1. TOTAL PENJUALAN (Menggunakan p.harga yang sudah ter-update dari varian/flash sale)
     const total = p.harga * p.quantity;
-    const potongan = Math.round(total * 0.15);
+
+    // 2. LOGIKA BARU: Potongan Platform Dinamis
+    // Berdasarkan analisis screenshot Shopee (~22%) dan TikTok (15%)
+    const platform = (p.selectedPlatform || '').toLowerCase();
+    const rate = platform === 'shopee' ? 0.22 : 0.15;
+
+    const potongan = Math.round(total * rate);
     const untungBersih = total - potongan - p.hpp * p.quantity;
 
     try {
@@ -534,7 +597,7 @@ async function kirimLaporan() {
           nama_produk: p.name,
           varian: `${p.selectedSize}-${p.selectedColor}`,
           jumlah: p.quantity,
-          harga_jual: p.harga,
+          harga_jual: p.harga, // Harga ini sudah otomatis harga promo kalau mode flash sale aktif
           hpp: p.hpp,
           platform: p.selectedPlatform,
         }),
@@ -546,19 +609,18 @@ async function kirimLaporan() {
         saveStok();
       }
 
-      // Simpan ke history
+      // Simpan ke history dengan Untung Bersih yang baru
       orderHistory.unshift({
         tanggal: new Date().toLocaleDateString('id-ID'),
         nama_produk: p.name,
         varian: `${p.selectedSize}-${p.selectedColor}`,
         jumlah: p.quantity,
         total_penjualan: total,
-        untung_bersih: untungBersih,
+        untung_bersih: untungBersih, // Hasil itungan dinamis di atas
         platform: p.selectedPlatform,
       });
       saveHistory();
 
-      // Delay antar request agar n8n / Google Sheets tidak kewalahan
       await sleep(1000);
     } catch (err) {
       console.error(`Gagal kirim order: ${p.name}`, err);
@@ -566,17 +628,22 @@ async function kirimLaporan() {
     }
   }
 
-  // Kirim ringkasan via Telegram sendData (jika di lingkungan Telegram)
+  // Kirim ringkasan via Telegram (opsional)
   if (tg?.sendData) {
-    const lines = items.map((p) => `${p.name} | ${p.selectedSize} | ${p.selectedColor} | ${p.selectedPlatform} | x${p.quantity}`);
+    const lines = items.map((p) => `${p.name} | ${p.selectedSize} | ${p.selectedPlatform} | x${p.quantity}`);
     const report = `ORDER NOTDISTRAUGHT\n${new Date().toLocaleString('id-ID')}\n\n${lines.join('\n')}`;
     try {
       tg.sendData(report);
     } catch (_) {}
   }
 
-  // Reset semua quantity
-  products.forEach((p) => (p.quantity = 0));
+  // Reset semua quantity & state flash sale
+  products.forEach((p) => {
+    p.quantity = 0;
+    p.isFlashSale = false; // Matikan mode flash sale setelah terkirim
+    p.flashPrice = null;
+  });
+
   renderProducts();
 
   if (allSuccess) {
