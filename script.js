@@ -328,10 +328,24 @@ function selectVariant(produkId, type, value) {
   const p = products.find((p) => p.id === produkId);
   if (!p) return;
 
-  if (type === 'size') p.selectedSize = value;
+  if (type === 'size') {
+    p.selectedSize = value;
+
+    // LOGIKA UPDATE HARGA:
+    // Kita ambil data harga & hpp yang sesuai dengan size yang baru diklik
+    if (p.variantMap) {
+      const dataVarian = p.variantMap[value.toLowerCase().trim()];
+      if (dataVarian) {
+        p.harga = dataVarian.harga; // Harga di layar berubah!
+        p.hpp = dataVarian.hpp; // Modal buat itungan profit juga berubah!
+      }
+    }
+  }
+
   if (type === 'color') p.selectedColor = value;
   if (type === 'platform') p.selectedPlatform = value;
 
+  // Render ulang biar harga baru langsung muncul di layar HP
   renderProducts();
 }
 
