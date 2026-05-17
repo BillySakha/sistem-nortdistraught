@@ -25,9 +25,11 @@ function init() {
 const getChatId = () => String(tg?.initDataUnsafe?.user?.id || '');
 
 // ===================== STATE =====================
+// ===================== STATE =====================
 let products = [];
 let stokData = {};
 let orderHistory = [];
+let lastOrder = null; // <--- 1. DEKLARASIKAN VARIABEL GLOBALNYA
 
 try {
   stokData = JSON.parse(localStorage.getItem('stokData')) || {};
@@ -38,6 +40,12 @@ try {
   orderHistory = JSON.parse(localStorage.getItem('orderHistory')) || [];
 } catch (_) {
   orderHistory = [];
+}
+// 💡 TAMBAHKAN BLOK INI DI BAWAHNYA:
+try {
+  lastOrder = JSON.parse(localStorage.getItem('lastOrder')) || null; // <--- 2. MUAT DATA DARI HP PAS TELEGRAM DIBUKA
+} catch (_) {
+  lastOrder = null;
 }
 
 // Modal state
