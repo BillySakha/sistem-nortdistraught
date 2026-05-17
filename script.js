@@ -103,13 +103,11 @@ async function fetchProducts() {
     const rawData = await res.json();
 
     // 💡 FIX 1: Kasih pengaman biar gak crash kalau datanya []
-    if (!rawData || rawData.length === 0) {
-      products = []; // Set produk kosong
+    if (!rawData || !Array.isArray(rawData) || rawData.length === 0) {
+      products = [];
       renderProducts();
       return;
     }
-
-    console.log('Kolom yang diterima JavaScript:', Object.keys(rawData[0]));
 
     const grouped = {};
     rawData.forEach((item) => {
