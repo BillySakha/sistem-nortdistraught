@@ -657,7 +657,9 @@ async function kirimLaporan() {
       let rowNumberFromServer = 2; // Fallback aman
       try {
         const resData = await resOrder.json();
-        // n8n versi baru mengembalikan row_number di dalam array objek atau root json
+
+        console.log('RESPON ASLI DARI SERVER N8N:', resData);
+
         rowNumberFromServer = resData.row_number || (resData.body && resData.body.row_number) || (resData[0] && resData[0].row_number) || 2;
       } catch (e) {
         console.log('Gagal parsing nomor baris, gunakan fallback default');
