@@ -92,6 +92,8 @@ async function fetchProducts() {
     const res = await fetch(WEBHOOK_GET_PRODUCTS);
     const rawData = await res.json();
 
+    console.log('Isi data asli dari n8n:', rawData);
+
     if (!rawData || rawData.length === 0) {
       renderProducts();
       return;
