@@ -737,6 +737,32 @@ function escHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// ===================== CORE LOGIC: RENDER TOMBOL CANCEL =====================
+function renderLastOrder() {
+  const container = document.getElementById('last-order-container');
+  if (!container) return;
+
+  // Jika tidak ada orderan terakhir di memori HP, kosongkan layarnya
+  if (!lastOrder) {
+    container.innerHTML = '';
+    return;
+  }
+
+  // Gambar ulang kartu merah pembatalan di atas daftar produk
+  container.innerHTML = `
+    <div class="product-card" style="background: #fdecea; border: 1.5px solid #c0392b; border-radius: var(--r-md); padding: 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; animation: slideUp 0.3s ease;">
+      <div style="flex: 1; min-width: 0; padding-right: 10px;">
+        <div style="font-family: var(--font-body); font-size: 9px; font-weight: 800; color: #c0392b; letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase;">ORDERAN TERAKHIR BERHASIL</div>
+        <div style="font-weight: 700; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escHtml(lastOrder.nama_produk)} (${lastOrder.jumlah} pcs)</div>
+        <div style="font-size: 11px; color: var(--ink-2);">Varian: ${escHtml(lastOrder.varian)}</div>
+      </div>
+      <button onclick="cancelLastOrder()" style="background: #c0392b; color: #fff; border: none; padding: 0 14px; border-radius: var(--r-sm); font-family: var(--font-body); font-size: 11px; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; min-height: 38px; display: flex; align-items: center; transition: all 0.15s;">
+        BATALKAN
+      </button>
+    </div>
+  `;
+}
+
 // ===================== CORE LOGIC: CANCEL ORDER TERAKHIR V2.0 =====================
 async function cancelLastOrder() {
   if (!lastOrder) return;
