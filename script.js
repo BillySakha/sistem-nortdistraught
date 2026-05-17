@@ -102,15 +102,16 @@ async function fetchProducts() {
     const res = await fetch(WEBHOOK_GET_PRODUCTS);
     const rawData = await res.json();
 
-    console.log('Kolom yang diterima JavaScript:', Object.keys(rawData[0]));
-
+    // 💡 FIX 1: Kasih pengaman biar gak crash kalau datanya []
     if (!rawData || rawData.length === 0) {
+      products = []; // Set produk kosong
       renderProducts();
       return;
     }
 
-    const grouped = {};
+    console.log('Kolom yang diterima JavaScript:', Object.keys(rawData[0]));
 
+    const grouped = {};
     rawData.forEach((item) => {
       const name = item['Nama Produk'];
       if (!name) return;
@@ -118,11 +119,8 @@ async function fetchProducts() {
       const produkId = item['ID Produk'] || 'P000';
       const size = (item['Varian Size'] || '').trim();
       const color = (item['Varian Warna '] || item['Varian Warna'] || '').trim();
-
-      // Ambil data harga & hpp dari baris ini
       const currentHpp = parseInt(item['HPP']?.toString().replace(/\D/g, '')) || 0;
       const currentHarga = parseInt(item['Harga Jual']?.toString().replace(/\D/g, '')) || 0;
-
       const serverAwal = parseInt(item['Stok Awal']) || 0;
       const serverMasuk = parseInt(item['Stok Masuk']) || 0;
       const serverSisa = parseInt(item['Stok Sisa']) || 0;
@@ -138,19 +136,17 @@ async function fetchProducts() {
           name: name,
           sizes: [],
           colors: [],
-          variantMap: {}, // <--- TEMPAT BARU: Simpan data harga tiap varian
+          variantMap: {},
           image: fixGDriveLink(item['Gambar Produk']),
           selectedSize: size,
           selectedColor: color,
           selectedPlatform: 'TikTok',
           quantity: 0,
-          // Harga awal (default)
           hpp: currentHpp,
           harga: currentHarga,
         };
       }
 
-      // REKAM DATA: Simpan harga & hpp spesifik untuk size ini ke dalam map
       const vKey = size.toLowerCase();
       grouped[name].variantMap[vKey] = { hpp: currentHpp, harga: currentHarga };
 
@@ -163,6 +159,7 @@ async function fetchProducts() {
     renderProducts();
   } catch (err) {
     console.error('fetchProducts error:', err);
+    products = []; // Paksa kosong kalau emang gagal total
     renderProducts();
   }
 }
@@ -175,7 +172,7 @@ function renderProducts() {
   if (products.length === 0) {
     container.innerHTML = `
       <div class="loading-state">
-        <div class="loading-state-text">MEMUAT DATA...</div>
+        <div class="loading-state-text">BELUM ADA DATA PRODUK / DATABASE KOSONG</div>
       </div>`;
     updateBottomBar();
     return;
