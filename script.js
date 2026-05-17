@@ -771,12 +771,11 @@ async function cancelLastOrder() {
   showToast('Memproses pembatalan...');
 
   try {
-    // TEMBAK KE WORKFLOW CANCEL DENGAN MEMBAWA ID ORDER
     const res = await fetch(WEBHOOK_CANCEL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id_order: lastOrder.id_order, // <--- DIKIRIM BERDASARKAN ID
+        id_order: lastOrder.id_order,
         key_stok: lastOrder.key_stok,
         qty_lama: parseInt(lastOrder.jumlah),
         qty_baru: 0,
@@ -784,11 +783,21 @@ async function cancelLastOrder() {
     });
 
     if (res.ok) {
+      // 💡 FIX 1: OPTIMISTIC UI (Balikin stok di memori RAM HP langsung tanpa nunggu server)
+      const key = lastOrder.key_stok;
+      if (stokData[key]) {
+        stokData[key].sisa = (stokData[key].sisa || 0) + parseInt(lastOrder.jumlah);
+        saveStok(); // Kunci ke localStorage biar langsung ngerender angka asli
+      }
+
       lastOrder = null;
       localStorage.removeItem('lastOrder');
       renderLastOrder();
 
-      await fetchProducts(); // Sinkron ulang data produk & stok gres
+      // 💡 FIX 2: ANTI RACE-CONDITION (Kasih jeda 1.5 detik biar Google Sheets selesai bernapas)
+      await sleep(1500);
+      await fetchProducts(); // Baru sinkron ulang data produk gres dari server
+
       showToast('✓ Orderan terakhir berhasil dibatalkan & stok pulih!');
     } else {
       showToast('⚠️ Gagal membatalkan di server n8n.');
