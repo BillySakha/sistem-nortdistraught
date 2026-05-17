@@ -12,8 +12,11 @@ function init() {
     tg.ready();
     tg.expand();
   }
-  // BARIS SEMENTARA: Hapus data lokal lama yang bentrok
+  // 1. Hapus penyimpanan lokal di browser
   localStorage.removeItem('stokData');
+
+  // 2. TAMBAHKAN BARIS INI: Paksa variabel di memori RAM jadi kosong total
+  stokData = {};
 
   fetchProducts();
 }
