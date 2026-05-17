@@ -625,11 +625,7 @@ async function kirimLaporan() {
 
   for (const p of items) {
     const key = getStokKey(p.id, p.selectedSize, p.selectedColor);
-
-    // 1. TOTAL PENJUALAN
     const total = p.harga * p.quantity;
-
-    // 2. LOGIKA POTONGAN (Tetap pake 22% sesuai kodingan lo)
     const platform = (p.selectedPlatform || '').toLowerCase();
     const rate = platform === 'shopee' ? 0.22 : 0.15;
 
@@ -637,8 +633,12 @@ async function kirimLaporan() {
     const untungBersih = total - potongan - p.hpp * p.quantity;
 
     try {
-      // 1. TANGKAP RESPONSE DARI WEBHOOK INPUT ORDER LO
-      const resOrder = await fetch(WEBHOOK_ORDER, {
+      // 💡 LANGKAH BARU: Generate ID Unik langsung di frontend Mini App
+      // Gabungan timestamp + angka acak biar gak bakal pernah kembar
+      const idOrderUnik = 'ORD-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+
+      // 1. KIRIM DATA ORDER KE WEBHOOK INPUT (Langsung tembak tanpa nunggu balik nomor baris)
+      await fetch(WEBHOOK_ORDER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -650,20 +650,9 @@ async function kirimLaporan() {
           harga_jual: p.harga,
           hpp: p.hpp,
           platform: p.selectedPlatform,
+          id_order: idOrderUnik, // <--- ID ORDER DIKIRIM KE N8N
         }),
       });
-
-      // 2. AMBIL NOMOR BARIS GOOGLE SHEETS DARI RESPONSE N8N
-      let rowNumberFromServer = 2; // Fallback aman
-      try {
-        const resData = await resOrder.json();
-
-        console.log('RESPON ASLI DARI SERVER N8N:', resData);
-
-        rowNumberFromServer = resData.row_number || (resData.body && resData.body.row_number) || (resData[0] && resData[0].row_number) || 2;
-      } catch (e) {
-        console.log('Gagal parsing nomor baris, gunakan fallback default');
-      }
 
       if (stokData[key]) {
         stokData[key].sisa = Math.max(0, (stokData[key].sisa ?? 0) - p.quantity);
@@ -681,9 +670,9 @@ async function kirimLaporan() {
       });
       saveHistory();
 
-      // 3. KUNCI DATA KE STORAGE UNTUK TOMBOL CANCEL NANTI
+      // 2. KUNCI DATA ID ORDER KE LOCALSTORAGE (Gak bergantung nomor baris lagi)
       lastOrder = {
-        row_number_order: rowNumberFromServer,
+        id_order: idOrderUnik, // <--- SEKARANG KUNCI PAKAI ID
         key_stok: key,
         nama_produk: p.name,
         varian: `${p.selectedSize}-${p.selectedColor}`,
@@ -706,23 +695,19 @@ async function kirimLaporan() {
     } catch (_) {}
   }
 
-  // --- BAGIAN YANG DI-UPDATE: RESET HARGA KE NORMAL ---
   products.forEach((p) => {
     p.quantity = 0;
     if (p.isFlashSale) {
       p.isFlashSale = false;
       p.flashPrice = null;
-
-      // Ambil balik harga normal dari variantMap sesuai size-nya
       const vData = p.variantMap[p.selectedSize.toLowerCase().trim()];
       if (vData) {
-        p.harga = vData.harga; // Harga balik normal! [cite: 1, 167-168]
+        p.harga = vData.harga;
       }
     }
   });
 
   renderProducts();
-
   if (allSuccess) {
     showToast('✓ Semua order berhasil terkirim!');
   } else {
@@ -744,31 +729,6 @@ function escHtml(str) {
 }
 
 // ===================== CORE LOGIC: CANCEL ORDER TERAKHIR V2.0 =====================
-function renderLastOrder() {
-  const container = document.getElementById('last-order-container');
-  if (!container) return;
-
-  // Jika tidak ada orderan terakhir, bersihkan wadah di layar HP
-  if (!lastOrder) {
-    container.innerHTML = '';
-    return;
-  }
-
-  // Gambar kartu notifikasi pembatalan di atas list produk
-  container.innerHTML = `
-    <div class="product-card" style="background: #fdecea; border: 1.5px solid #c0392b; border-radius: var(--r-md); padding: 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; animation: slideUp 0.3s ease;">
-      <div style="flex: 1; min-width: 0; padding-right: 10px;">
-        <div style="font-family: var(--font-body); font-size: 9px; font-weight: 800; color: #c0392b; letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase;">ORDERAN TERAKHIR BERHASIL</div>
-        <div style="font-weight: 700; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escHtml(lastOrder.nama_produk)} (${lastOrder.jumlah} pcs)</div>
-        <div style="font-size: 11px; color: var(--ink-2);">Varian: ${escHtml(lastOrder.varian)}</div>
-      </div>
-      <button onclick="cancelLastOrder()" style="background: #c0392b; color: #fff; border: none; padding: 0 14px; border-radius: var(--r-sm); font-family: var(--font-body); font-size: 11px; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; min-height: 38px; display: flex; align-items: center; transition: all 0.15s;">
-        BATALKAN
-      </button>
-    </div>
-  `;
-}
-
 async function cancelLastOrder() {
   if (!lastOrder) return;
   if (!confirm('Apakah lo yakin mau membatalkan orderan terakhir ini? Stok di Google Sheets akan otomatis dikembalikan.')) return;
@@ -776,24 +736,24 @@ async function cancelLastOrder() {
   showToast('Memproses pembatalan...');
 
   try {
+    // TEMBAK KE WORKFLOW CANCEL DENGAN MEMBAWA ID ORDER
     const res = await fetch(WEBHOOK_CANCEL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        row_number_order: parseInt(lastOrder.row_number_order),
+        id_order: lastOrder.id_order, // <--- DIKIRIM BERDASARKAN ID
         key_stok: lastOrder.key_stok,
         qty_lama: parseInt(lastOrder.jumlah),
-        qty_baru: 0, // Otomatis diset 0 karena dibatalkan total
+        qty_baru: 0,
       }),
     });
 
     if (res.ok) {
       lastOrder = null;
       localStorage.removeItem('lastOrder');
-      renderLastOrder(); // Hilangkan kartu dari layar
+      renderLastOrder();
 
-      // Ambil data stok terbaru dari server biar sinkron ulang
-      await fetchProducts();
+      await fetchProducts(); // Sinkron ulang data produk & stok gres
       showToast('✓ Orderan terakhir berhasil dibatalkan & stok pulih!');
     } else {
       showToast('⚠️ Gagal membatalkan di server n8n.');
@@ -803,6 +763,5 @@ async function cancelLastOrder() {
     showToast('⚠️ Gagal koneksi ke server n8n.');
   }
 }
-
 // ===================== BOOT =====================
 window.onload = init;
