@@ -3,6 +3,7 @@ const WEBHOOK_GET_PRODUCTS = 'https://primary-production-02f5b.up.railway.app/we
 const WEBHOOK_ORDER = 'https://primary-production-02f5b.up.railway.app/webhook/input-order';
 const WEBHOOK_RESTOCK = 'https://primary-production-02f5b.up.railway.app/webhook/restock-stok';
 const WEBHOOK_EDIT_STOK = 'https://primary-production-02f5b.up.railway.app/webhook/edit-stok';
+const WEBHOOK_CANCEL = 'https://primary-production-02f5b.up.railway.app/webhook/edit-cancel-order';
 
 // ===================== TELEGRAM =====================
 const tg = window.Telegram?.WebApp || null;
@@ -636,7 +637,8 @@ async function kirimLaporan() {
     const untungBersih = total - potongan - p.hpp * p.quantity;
 
     try {
-      await fetch(WEBHOOK_ORDER, {
+      // 1. TANGKAP RESPONSE DARI WEBHOOK INPUT ORDER LO
+      const resOrder = await fetch(WEBHOOK_ORDER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -650,6 +652,16 @@ async function kirimLaporan() {
           platform: p.selectedPlatform,
         }),
       });
+
+      // 2. AMBIL NOMOR BARIS GOOGLE SHEETS DARI RESPONSE N8N
+      let rowNumberFromServer = 2; // Fallback aman
+      try {
+        const resData = await resOrder.json();
+        // n8n versi baru mengembalikan row_number di dalam array objek atau root json
+        rowNumberFromServer = resData.row_number || (resData.body && resData.body.row_number) || (resData[0] && resData[0].row_number) || 2;
+      } catch (e) {
+        console.log('Gagal parsing nomor baris, gunakan fallback default');
+      }
 
       if (stokData[key]) {
         stokData[key].sisa = Math.max(0, (stokData[key].sisa ?? 0) - p.quantity);
@@ -666,6 +678,16 @@ async function kirimLaporan() {
         platform: p.selectedPlatform,
       });
       saveHistory();
+
+      // 3. KUNCI DATA KE STORAGE UNTUK TOMBOL CANCEL NANTI
+      lastOrder = {
+        row_number_order: rowNumberFromServer,
+        key_stok: key,
+        nama_produk: p.name,
+        varian: `${p.selectedSize}-${p.selectedColor}`,
+        jumlah: p.quantity,
+      };
+      localStorage.setItem('lastOrder', JSON.stringify(lastOrder));
 
       await sleep(1000);
     } catch (err) {
@@ -709,6 +731,8 @@ async function kirimLaporan() {
     btn.disabled = false;
     btn.querySelector('span').textContent = 'KIRIM ORDER';
   }
+
+  renderLastOrder();
 }
 
 // ===================== SECURITY HELPER =====================
@@ -717,18 +741,65 @@ function escHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// ===================== FEATURE: RESET/CANCEL ORDER GLOBAL =====================
-function resetKeranjang() {
-  // 1. Sapu bersih semua quantity produk di memori aplikasi balik jadi 0
-  products.forEach((p) => {
-    p.quantity = 0;
-  });
+// ===================== CORE LOGIC: CANCEL ORDER TERAKHIR V2.0 =====================
+function renderLastOrder() {
+  const container = document.getElementById('last-order-container');
+  if (!container) return;
 
-  // 2. Gambar ulang kartu produk biar angka di layar HP berubah jadi 0 semua
-  renderProducts();
+  // Jika tidak ada orderan terakhir, bersihkan wadah di layar HP
+  if (!lastOrder) {
+    container.innerHTML = '';
+    return;
+  }
 
-  // 3. Kasih toast feedback biar si Ade tahu inputannya udah bersih
-  showToast('✓ Semua inputan berhasil dikosongkan!');
+  // Gambar kartu notifikasi pembatalan di atas list produk
+  container.innerHTML = `
+    <div class="product-card" style="background: #fdecea; border: 1.5px solid #c0392b; border-radius: var(--r-md); padding: 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; animation: slideUp 0.3s ease;">
+      <div style="flex: 1; min-width: 0; padding-right: 10px;">
+        <div style="font-family: var(--font-body); font-size: 9px; font-weight: 800; color: #c0392b; letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase;">ORDERAN TERAKHIR BERHASIL</div>
+        <div style="font-weight: 700; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escHtml(lastOrder.nama_produk)} (${lastOrder.jumlah} pcs)</div>
+        <div style="font-size: 11px; color: var(--ink-2);">Varian: ${escHtml(lastOrder.varian)}</div>
+      </div>
+      <button onclick="cancelLastOrder()" style="background: #c0392b; color: #fff; border: none; padding: 0 14px; border-radius: var(--r-sm); font-family: var(--font-body); font-size: 11px; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; min-height: 38px; display: flex; align-items: center; transition: all 0.15s;">
+        BATALKAN
+      </button>
+    </div>
+  `;
+}
+
+async function cancelLastOrder() {
+  if (!lastOrder) return;
+  if (!confirm('Apakah lo yakin mau membatalkan orderan terakhir ini? Stok di Google Sheets akan otomatis dikembalikan.')) return;
+
+  showToast('Memproses pembatalan...');
+
+  try {
+    const res = await fetch(WEBHOOK_CANCEL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        row_number_order: parseInt(lastOrder.row_number_order),
+        key_stok: lastOrder.key_stok,
+        qty_lama: parseInt(lastOrder.jumlah),
+        qty_baru: 0, // Otomatis diset 0 karena dibatalkan total
+      }),
+    });
+
+    if (res.ok) {
+      lastOrder = null;
+      localStorage.removeItem('lastOrder');
+      renderLastOrder(); // Hilangkan kartu dari layar
+
+      // Ambil data stok terbaru dari server biar sinkron ulang
+      await fetchProducts();
+      showToast('✓ Orderan terakhir berhasil dibatalkan & stok pulih!');
+    } else {
+      showToast('⚠️ Gagal membatalkan di server n8n.');
+    }
+  } catch (err) {
+    console.error('Cancel order error:', err);
+    showToast('⚠️ Gagal koneksi ke server n8n.');
+  }
 }
 
 // ===================== BOOT =====================
