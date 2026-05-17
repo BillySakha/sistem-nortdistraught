@@ -12,6 +12,9 @@ function init() {
     tg.ready();
     tg.expand();
   }
+  // BARIS SEMENTARA: Hapus data lokal lama yang bentrok
+  localStorage.removeItem('stokData');
+
   fetchProducts();
 }
 
