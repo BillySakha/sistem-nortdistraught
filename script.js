@@ -20,6 +20,7 @@ function init() {
   stokData = {};
 
   fetchProducts();
+  renderLastOrder();
 }
 
 const getChatId = () => String(tg?.initDataUnsafe?.user?.id || '');
