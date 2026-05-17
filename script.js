@@ -3,7 +3,7 @@ const WEBHOOK_GET_PRODUCTS = 'https://primary-production-02f5b.up.railway.app/we
 const WEBHOOK_ORDER = 'https://primary-production-02f5b.up.railway.app/webhook/input-order';
 const WEBHOOK_RESTOCK = 'https://primary-production-02f5b.up.railway.app/webhook/restock-stok';
 const WEBHOOK_EDIT_STOK = 'https://primary-production-02f5b.up.railway.app/webhook/edit-stok';
-const WEBHOOK_CANCEL = 'https://primary-production-02f5b.up.railway.app/webhook/edit-cancel-order';
+const WEBHOOK_CANCEL = 'https://primary-production-02f5b.up.railway.app/webhook-test/input-order';
 
 // ===================== TELEGRAM =====================
 const tg = window.Telegram?.WebApp || null;
