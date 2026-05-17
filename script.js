@@ -343,7 +343,6 @@ function renderStok() {
 function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach((el) => el.classList.remove('active'));
   document.querySelectorAll('.tab').forEach((el) => el.classList.remove('active'));
-
   const targetContent = document.getElementById('tab-' + tabName);
   const targetBtn = document.querySelector(`[data-tab="${tabName}"]`);
 
@@ -356,6 +355,13 @@ function switchTab(tabName) {
   }
 
   if (tabName === 'stok') renderStok();
+
+  // === FITUR SINKRONISASI JALAN DI SINI ===
+  // Setiap kali si Ade atau karyawan klik tab INPUT ORDER,
+  // aplikasi bakal otomatis narik data stok paling gres dari Google Sheets via n8n
+  if (tabName === 'order') {
+    fetchProducts();
+  }
 }
 
 // ===================== VARIANT SELECTION =====================
@@ -701,6 +707,20 @@ async function kirimLaporan() {
 function escHtml(str) {
   if (typeof str !== 'string') return String(str ?? '');
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ===================== FEATURE: RESET/CANCEL ORDER GLOBAL =====================
+function resetKeranjang() {
+  // 1. Sapu bersih semua quantity produk di memori aplikasi balik jadi 0
+  products.forEach((p) => {
+    p.quantity = 0;
+  });
+
+  // 2. Gambar ulang kartu produk biar angka di layar HP berubah jadi 0 semua
+  renderProducts();
+
+  // 3. Kasih toast feedback biar si Ade tahu inputannya udah bersih
+  showToast('✓ Semua inputan berhasil dikosongkan!');
 }
 
 // ===================== BOOT =====================

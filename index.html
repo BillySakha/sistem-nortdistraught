@@ -76,6 +76,29 @@
           <span class="summary-label">TOTAL ITEM</span>
           <span class="summary-val" id="total-item-count">0 item</span>
         </div>
+
+        <button
+          class="btn-cancel"
+          onclick="resetKeranjang()"
+          style="
+            margin-right: 4px;
+            min-height: 52px;
+            padding: 0 16px;
+            background: #f0efe9;
+            color: #3a3a3a;
+            border: 1.5px solid rgba(0, 0, 0, 0.08);
+            border-radius: var(--r-md);
+            font-family: var(--font-body);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+          "
+        >
+          BATAL
+        </button>
+
         <button class="btn-kirim" id="btn-kirim" onclick="kirimLaporan()">
           <span>KIRIM ORDER</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
